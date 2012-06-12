@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<project>
+  <fileVersion>2</fileVersion>
+  <fileChecksum>32445174</fileChecksum>
+  <configuration>
+    <name>Debug</name>
+    <outputs>
+      <file>$PROJ_DIR$\sd.c</file>
+      <file>$TOOLKIT_DIR$\inc\in430.h</file>
+      <file>$PROJ_DIR$\circuit.c</file>
+      <file>$PROJ_DIR$\L3G4200D.c</file>
+      <file>$PROJ_DIR$\circuit.h</file>
+      <file>$PROJ_DIR$\L3G4200D.h</file>
+      <file>$PROJ_DIR$\LIS3LV02DL.c</file>
+      <file>$PROJ_DIR$\LIS3LV02DL.h</file>
+      <file>$PROJ_DIR$\main.c</file>
+      <file>$PROJ_DIR$\msp430f5310_extra.c</file>
+      <file>$PROJ_DIR$\msp430f5310_extra.h</file>
+      <file>$PROJ_DIR$\sdfat.c</file>
+      <file>$PROJ_DIR$\sdfat.h</file>
+      <file>$PROJ_DIR$\spi.c</file>
+      <file>$PROJ_DIR$\spi.h</file>
+      <file>$PROJ_DIR$\util.c</file>
+      <file>$PROJ_DIR$\util.h</file>
+      <file>$TOOLKIT_DIR$\inc\dlib\c\xencoding_limits.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\bender_2.pbd</file>
+      <file>$PROJ_DIR$\Debug\Obj\spi.pbi</file>
+      <file>$TOOLKIT_DIR$\inc\dlib\c\DLib_Threads.h</file>
+      <file>$TOOLKIT_DIR$\config\lnk430F5310.xcl</file>
+      <file>$PROJ_DIR$\Debug\Exe\bender_2.0.txt</file>
+      <file>$PROJ_DIR$\Debug\Obj\circuit.pbi</file>
+      <file>$TOOLKIT_DIR$\inc\dlib\c\DLib_Defaults.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\sd.r43</file>
+      <file>$PROJ_DIR$\Debug\Obj\circuit.r43</file>
+      <file>$TOOLKIT_DIR$\inc\dlib\c\stdint.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\msp430f5310_extra.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\msp430f5310_extra.r43</file>
+      <file>$PROJ_DIR$\Debug\Obj\L3G4200D.r43</file>
+      <file>$PROJ_DIR$\Debug\Obj\spi.r43</file>
+      <file>$PROJ_DIR$\Debug\Obj\main.r43</file>
+      <file>$TOOLKIT_DIR$\inc\dlib\c\ycheck.h</file>
+      <file>$TOOLKIT_DIR$\lib\dlib\dl430xsfn.h</file>
+      <file>$TOOLKIT_DIR$\inc\intrinsics.h</file>
+      <file>$TOOLKIT_DIR$\lib\dlib\dl430xsfn.r43</file>
+      <file>$TOOLKIT_DIR$\inc\msp430f5310.h</file>
+      <file>$TOOLKIT_DIR$\config\multiplier32_loc2.xcl</file>
+      <file>$PROJ_DIR$\Debug\Obj\L3G4200D.pbi</file>
+      <file>$PROJ_DIR$\Debug\Exe\bender_2.0.d43</file>
+      <file>$PROJ_DIR$\Debug\Obj\sd.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\LIS3LV02DL.r43</file>
+      <file>$PROJ_DIR$\Debug\Obj\util.pbi</file>
+      <file>$TOOLKIT_DIR$\inc\dlib\c\yvals.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\sdfat.r43</file>
+      <file>$PROJ_DIR$\Debug\Obj\LIS3LV02DL.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\main.pbi</file>
+      <file>$TOOLKIT_DIR$\inc\dlib\c\DLib_Product.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\util.r43</file>
+      <file>$PROJ_DIR$\Debug\Obj\sdfat.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\zap_test.pbd</file>
+      <file>$PROJ_DIR$\Debug\Exe\zap_test.d43</file>
+    </outputs>
+    <file>
+      <name>$PROJ_DIR$\sd.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 41</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 25</file>
+        </tool>
+      </outputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\circuit.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 23</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 26</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37 1 35 27 33 44 24 48 17 20 4</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 37 1 35 27 33 44 24 34 48 17 20 4</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\L3G4200D.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 39</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 30</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37 1 35 27 33 44 24 48 17 20 14 5</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 37 1 35 27 33 44 24 34 48 17 20 14 5</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\LIS3LV02DL.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 46</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 42</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37 1 35 27 33 44 24 48 17 20 14 7</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 37 1 35 27 33 44 24 34 48 17 20 14 7</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\main.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 47</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 32</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37 1 35 27 33 44 24 48 17 20 14 12 7 5 16 10 4</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 37 1 35 27 33 44 24 34 48 17 20 14 12 7 5 16 10 4</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\msp430f5310_extra.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 28</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 29</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37 1 35 27 33 44 24 48 17 20 10</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 37 1 35 27 33 44 24 34 48 17 20 10</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\sdfat.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 50</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 45</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37 1 35 27 33 44 24 48 17 20 14 4 12</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 37 1 35 27 33 44 24 34 48 17 20 14 4 12</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\spi.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 19</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 31</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37 1 35 27 33 44 24 48 17 20 14</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 37 1 35 27 33 44 24 34 48 17 20 14</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\util.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 43</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 49</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 37 1 35 27 33 44 24 48 17 20 12 16</file>
+        </tool>
+        <tool>
+          <name>ICC430</name>
+          <file> 37 1 35 27 33 44 24 34 48 17 20 12 16</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Obj\bender_2.pbd</name>
+      <inputs>
+        <tool>
+          <name>BILINK</name>
+          <file> 39 46 23 47 28 50 19 43</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Exe\bender_2.0.txt</name>
+      <inputs>
+        <tool>
+          <name>XLINK</name>
+          <file> 21 38 30 42 32 25 31 49 36</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>[ROOT_NODE]</name>
+      <outputs>
+        <tool>
+          <name>XLINK</name>
+          <file> 40 52</file>
+        </tool>
+      </outputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Exe\bender_2.0.d43</name>
+      <inputs>
+        <tool>
+          <name>XLINK</name>
+          <file> 21 38 30 42 26 32 29 45 31 49 36</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Obj\zap_test.pbd</name>
+      <inputs>
+        <tool>
+          <name>BILINK</name>
+          <file> 39 46 23 47 28 50 19 43</file>
+        </tool>
+      </inputs>
+    </file>
+  </configuration>
+  <configuration>
+    <name>Release</name>
+    <outputs/>
+    <forcedrebuild>
+      <name>[MULTI_TOOL]</name>
+      <tool>XLINK</tool>
+    </forcedrebuild>
+    <forcedrebuild>
+      <name>[REBUILD_ALL]</name>
+    </forcedrebuild>
+  </configuration>
+</project>
+
+
