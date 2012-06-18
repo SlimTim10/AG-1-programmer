@@ -237,6 +237,9 @@ uint8_t start_logging(void) {
 // Fill data buffer with arbitrary numbers
 			for (i = 0; i < 512; i++) data[i] = i;
 
+// Erase blocks
+			if (erase_blocks(0, 0x80000)) return 2;
+
 // Write block
 			if (write_block(block_offset, 512)) return 2;
 

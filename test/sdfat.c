@@ -210,6 +210,44 @@ uint8_t wait_startblock(void) {
 }
 
 /*----------------------------------------------------------------------------*/
+/* Erase blocks from offset block_start to offset block_end					  */
+/*----------------------------------------------------------------------------*/
+uint8_t erase_blocks(uint32_t block_start, uint32_t block_end) {
+	CS_LOW_SD();
+
+// ERASE_WR_BLK_START command
+	if (send_cmd_sd(CMD32, block_start)) {
+		CS_HIGH_SD();			// Card deselect
+		return 1;
+	}
+
+// ERASE_WR_BLK_END command
+	if (send_cmd_sd(CMD33, block_end)) {
+		CS_HIGH_SD();			// Card deselect
+		return 1;
+	}
+
+// ERASE command
+	if (send_cmd_sd(CMD38, 0)) {
+		CS_HIGH_SD();			// Card deselect
+		return 1;
+	}
+
+// Wait for flash programming to complete
+	wait_notbusy();
+	
+// Get status
+	if (send_cmd_sd(CMD13, 0) || spia_rec())	{
+		CS_HIGH_SD(); // Card deselect
+		return 1;
+	}
+	
+	CS_HIGH_SD();
+
+	return 0;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Write the first count bytes in data buffer 'data' starting at offset		  */
 /*----------------------------------------------------------------------------*/
 uint8_t write_block(uint32_t offset, uint16_t count) {

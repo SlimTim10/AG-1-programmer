@@ -14,6 +14,9 @@
 #define CMD13	13
 #define CMD17	17
 #define CMD24	24
+#define CMD32	32
+#define CMD33	33
+#define CMD38	38
 #define CMD55	55
 #define CMD58	58
 #define ACMD41	41
@@ -32,6 +35,7 @@ uint8_t init_sd(void);
 void go_idle_sd(void);
 uint8_t send_cmd_sd(uint8_t cmd, uint32_t arg);
 uint8_t send_acmd_sd(uint8_t acmd, uint32_t arg);
+uint8_t erase_blocks(uint32_t block_start, uint32_t block_end);
 uint8_t write_block(uint32_t offset, uint16_t count);
 uint8_t read_block(uint32_t offset);
 uint16_t find_cluster(void);
