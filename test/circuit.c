@@ -19,20 +19,7 @@ void mcu_pin_config(void) {
 	P1DIR |= BIT3;		// output: LED1
 // output: LDO regulators
 	P6DIR |= SD_PWR | ACCEL_PWR | GYRO_PWR;
-	P1DIR &= ~BIT5;		// input: Accelerometer **a LIS3LV02DL INT1 interrupt
-	P1DIR &= ~BIT7;		// input: Gyroscope **g interrupt L3G4200D INT2
-	P1DIR |= BIT3;		// output: LED1
 	P6SEL |= BIT3;		// Select ADC on P6.3 (technically not GPIO)
-}
-
-/*----------------------------------------------------------------------------*/
-/* Select XIN and XOUT options in microcontroller pins						  */
-/*----------------------------------------------------------------------------*/
-void mcu_xt_pins(void) {
-// Select XIN on P5.4
-	P5SEL |= BIT4;
-// Select XOUT on P5.5
-	P5SEL |= BIT5;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -47,41 +34,9 @@ uint8_t ctrl_high(void) {
 /*----------------------------------------------------------------------------*/
 void interrupt_config(void) {
 	P1IE = 0;						// Clear enabled interrupts on P1
-	P1IE |= BIT5;					// P1.5 interrupt enabled for accelerometer
-	P1IES &= ~BIT5;					// P1.5 edge select: low-to-high transition
-	P1IE |= BIT7;					// P1.7 interrupt enabled for accelerometer
-	P1IES &= ~BIT7;					// P1.7 edge select: low-to-high transition
 	P1IE |= BIT1;					// P1.1 interrupt enabled for CTRL button
 	P1IES &= ~BIT1;					// P1.1 edge select: low-to-high transition
 	P1IFG = 0x0000;					// Clear all pending interrupt Flags
-}
-
-/*----------------------------------------------------------------------------*/
-/* Set interrupt flag for accelerometer (P1.5)								  */
-/*----------------------------------------------------------------------------*/
-void set_int_accel(void) {
-	P1IFG |= BIT5;
-}
-
-/*----------------------------------------------------------------------------*/
-/* Clear interrupt flag for accelerometer (P1.5)							  */
-/*----------------------------------------------------------------------------*/
-void clear_int_accel(void) {
-	P1IFG &= ~BIT5;
-}
-
-/*----------------------------------------------------------------------------*/
-/* Set interrupt flag for gyroscope (P1.7)									  */
-/*----------------------------------------------------------------------------*/
-void set_int_gyro(void) {
-	P1IFG |= BIT7;
-}
-
-/*----------------------------------------------------------------------------*/
-/* Clear interrupt flag for gyroscope (P1.7)								  */
-/*----------------------------------------------------------------------------*/
-void clear_int_gyro(void) {
-	P1IFG &= ~BIT7;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -99,7 +54,7 @@ void power_on(uint8_t n) {
 }
 
 /*----------------------------------------------------------------------------*/
-/* Disable regulator controlled by MCU pin 6.n								  */
+/* Disable LDO regulator controlled by MCU pin 6.n							  */
 /*----------------------------------------------------------------------------*/
 void power_off(uint8_t n) {
 	P6OUT &= ~n;
@@ -112,7 +67,6 @@ void mcu_spi_off(void) {
 	P4SEL = 0x00;				// Unselect SPI bus function
 	P4OUT = 0x00;				// All slaves SPI bus set low
 	P4DIR = 0xFF;				// P4 output direction
-	P1OUT &= (~BIT4) & (~BIT6);	// Accelerometer CS and gyroscope CS
 }
 
 #endif

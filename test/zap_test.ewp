@@ -592,7 +592,7 @@
         </option>
         <option>
           <name>OutputFile</name>
-          <state>bender_2.0.d43</state>
+          <state>zap_test.d43</state>
         </option>
         <option>
           <name>OutputFormat</name>
@@ -1779,18 +1779,6 @@
     <name>$PROJ_DIR$\circuit.h</name>
   </file>
   <file>
-    <name>$PROJ_DIR$\L3G4200D.c</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\L3G4200D.h</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\LIS3LV02DL.c</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\LIS3LV02DL.h</name>
-  </file>
-  <file>
     <name>$PROJ_DIR$\main.c</name>
   </file>
   <file>
@@ -1810,12 +1798,6 @@
   </file>
   <file>
     <name>$PROJ_DIR$\spi.h</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\util.c</name>
-  </file>
-  <file>
-    <name>$PROJ_DIR$\util.h</name>
   </file>
 </project>
 
