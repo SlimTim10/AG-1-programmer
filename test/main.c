@@ -13,7 +13,7 @@
 #include "msp430f5310_extra.h"
 #include "circuit.h"
 
-#define BUFF_SIZE		600		// Size of data buffers
+#define BUFF_SIZE		2048	// Size of data buffers
 
 #define CLOCK_SPEED		12		// DCO speed (MHz)
 
@@ -209,7 +209,6 @@ uint8_t start_logging(void) {
 	uint8_t tmp8;
 	uint16_t tmp16;
 	uint32_t tmp32;
-	uint32_t i;
 
 	logging = 1;					// Device is now in logging state
 	stop_flag = 0;					// Change to 1 to signal stop logging
@@ -235,10 +234,11 @@ uint8_t start_logging(void) {
 			}
 
 // Fill data buffer with arbitrary numbers
-			for (i = 0; i < 512; i++) data[i] = i;
-
-// Erase blocks
-			if (erase_blocks(0, 0x80000)) return 2;
+			uint32_t i;
+			uint8_t j;
+			for (i = 0, j = 0x00; i < BUFF_SIZE; i++, j++) {
+				data[i] = j;
+			}
 
 // Write block
 			if (write_block(block_offset, 512)) return 2;
