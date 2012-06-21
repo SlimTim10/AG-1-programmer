@@ -9,17 +9,19 @@
 #define _SDFATLIB_H
 
 // SD Card Commands
-#define CMD0	0
-#define CMD8	8
-#define CMD13	13
-#define CMD17	17
-#define CMD24	24
-#define CMD32	32
-#define CMD33	33
-#define CMD38	38
-#define CMD55	55
-#define CMD58	58
-#define ACMD41	41
+#define CMD0	0	// GO_IDLE_STATE
+#define CMD8	8	// SEND_IF_COND
+#define CMD13	13	// SEND_STATUS
+#define CMD17	17	// READ_SINGLE_BLOCK
+#define CMD24	24	// WRITE_BLOCK
+#define CMD25	25	// WRITE_MULTIPLE_BLOCK
+#define CMD55	55	// APP_CMD
+#define CMD58	58	// READ_OCR
+#define ACMD41	41	// SD_SEND_OP_COND
+
+// SD Card Tokens for Multiple Block Write
+#define START_BLK_TOK	0xFC	// 'Start Block' token
+#define STOP_TRANS_TOK	0xFD	// 'Stop Tran' token (stop transmission)
 
 // SD Card type flags (CardType)
 #define CT_MMC				0x01				// MMC ver 3
@@ -35,7 +37,7 @@ uint8_t init_sd(void);
 void go_idle_sd(void);
 uint8_t send_cmd_sd(uint8_t cmd, uint32_t arg);
 uint8_t send_acmd_sd(uint8_t acmd, uint32_t arg);
-uint8_t erase_blocks(uint32_t block_start, uint32_t block_end);
+uint8_t write_multiple_block(uint32_t start_offset);
 uint8_t write_block(uint32_t offset, uint16_t count);
 uint8_t read_block(uint32_t offset);
 uint16_t find_cluster(void);

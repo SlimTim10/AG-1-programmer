@@ -18,19 +18,19 @@
       <file>$PROJ_DIR$\spi.c</file>
       <file>$PROJ_DIR$\spi.h</file>
       <file>$PROJ_DIR$\Debug\Obj\sdfat.pbi</file>
-      <file>$PROJ_DIR$\Debug\Obj\main.pbi</file>
       <file>$TOOLKIT_DIR$\inc\dlib\c\DLib_Product.h</file>
       <file>$PROJ_DIR$\sd.c</file>
-      <file>$PROJ_DIR$\Debug\Exe\zap_test.d43</file>
       <file>$PROJ_DIR$\LIS3LV02DL.c</file>
+      <file>$PROJ_DIR$\Debug\Exe\zap_test.d43</file>
+      <file>$PROJ_DIR$\Debug\Obj\main.pbi</file>
       <file>$PROJ_DIR$\L3G4200D.c</file>
+      <file>$PROJ_DIR$\LIS3LV02DL.h</file>
+      <file>$PROJ_DIR$\L3G4200D.h</file>
+      <file>$TOOLKIT_DIR$\config\lnk430F5310.xcl</file>
+      <file>$PROJ_DIR$\util.h</file>
       <file>$PROJ_DIR$\Debug\Obj\L3G4200D.pbi</file>
       <file>$PROJ_DIR$\Debug\Obj\util.pbi</file>
       <file>$PROJ_DIR$\Debug\Obj\LIS3LV02DL.pbi</file>
-      <file>$PROJ_DIR$\L3G4200D.h</file>
-      <file>$PROJ_DIR$\LIS3LV02DL.h</file>
-      <file>$PROJ_DIR$\util.h</file>
-      <file>$TOOLKIT_DIR$\config\lnk430F5310.xcl</file>
       <file>$PROJ_DIR$\util.c</file>
       <file>$TOOLKIT_DIR$\inc\dlib\c\DLib_Threads.h</file>
       <file>$TOOLKIT_DIR$\inc\dlib\c\xencoding_limits.h</file>
@@ -46,15 +46,15 @@
       <file>$TOOLKIT_DIR$\inc\dlib\c\ycheck.h</file>
       <file>$PROJ_DIR$\Debug\Obj\L3G4200D.r43</file>
       <file>$TOOLKIT_DIR$\lib\dlib\dl430xsfn.h</file>
-      <file>$PROJ_DIR$\Debug\Obj\circuit.pbi</file>
-      <file>$PROJ_DIR$\Debug\Obj\main.r43</file>
       <file>$TOOLKIT_DIR$\lib\dlib\dl430xsfn.r43</file>
-      <file>$TOOLKIT_DIR$\inc\intrinsics.h</file>
-      <file>$PROJ_DIR$\Debug\Exe\bender_2.0.txt</file>
-      <file>$TOOLKIT_DIR$\inc\msp430f5310.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\main.r43</file>
       <file>$TOOLKIT_DIR$\config\multiplier32_loc2.xcl</file>
-      <file>$PROJ_DIR$\Debug\Obj\sd.pbi</file>
+      <file>$TOOLKIT_DIR$\inc\intrinsics.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\circuit.pbi</file>
+      <file>$TOOLKIT_DIR$\inc\msp430f5310.h</file>
       <file>$PROJ_DIR$\Debug\Exe\bender_2.0.d43</file>
+      <file>$PROJ_DIR$\Debug\Obj\sd.pbi</file>
+      <file>$PROJ_DIR$\Debug\Exe\bender_2.0.txt</file>
       <file>$PROJ_DIR$\Debug\Obj\sdfat.r43</file>
       <file>$PROJ_DIR$\Debug\Obj\LIS3LV02DL.r43</file>
       <file>$PROJ_DIR$\Debug\Obj\util.r43</file>
@@ -65,7 +65,7 @@
       <inputs>
         <tool>
           <name>BILINK</name>
-          <file> 40 12 34 11 28</file>
+          <file> 44 16 34 11 28</file>
         </tool>
       </inputs>
     </file>
@@ -74,7 +74,7 @@
       <outputs>
         <tool>
           <name>BICOMP</name>
-          <file> 40</file>
+          <file> 44</file>
         </tool>
         <tool>
           <name>ICC430</name>
@@ -84,11 +84,11 @@
       <inputs>
         <tool>
           <name>BICOMP</name>
-          <file> 45 0 43 33 37 52 30 13 27 26 4</file>
+          <file> 45 0 43 33 37 52 30 12 27 26 4</file>
         </tool>
         <tool>
           <name>ICC430</name>
-          <file> 45 0 43 33 37 52 30 39 13 27 26 4</file>
+          <file> 45 0 43 33 37 52 30 39 12 27 26 4</file>
         </tool>
       </inputs>
     </file>
@@ -97,7 +97,7 @@
       <outputs>
         <tool>
           <name>BICOMP</name>
-          <file> 12</file>
+          <file> 16</file>
         </tool>
         <tool>
           <name>ICC430</name>
@@ -107,11 +107,11 @@
       <inputs>
         <tool>
           <name>BICOMP</name>
-          <file> 45 0 43 33 37 52 30 13 27 26 10 8 6 4</file>
+          <file> 45 0 43 33 37 52 30 12 27 26 10 8 6 4</file>
         </tool>
         <tool>
           <name>ICC430</name>
-          <file> 45 0 43 33 37 52 30 39 13 27 26 10 8 6 4</file>
+          <file> 45 0 43 33 37 52 30 39 12 27 26 10 8 6 4</file>
         </tool>
       </inputs>
     </file>
@@ -130,11 +130,11 @@
       <inputs>
         <tool>
           <name>BICOMP</name>
-          <file> 45 0 43 33 37 52 30 13 27 26 6</file>
+          <file> 45 0 43 33 37 52 30 12 27 26 6</file>
         </tool>
         <tool>
           <name>ICC430</name>
-          <file> 45 0 43 33 37 52 30 39 13 27 26 6</file>
+          <file> 45 0 43 33 37 52 30 39 12 27 26 6</file>
         </tool>
       </inputs>
     </file>
@@ -153,11 +153,11 @@
       <inputs>
         <tool>
           <name>BICOMP</name>
-          <file> 45 0 43 33 37 52 30 13 27 26 10 4 8</file>
+          <file> 45 0 43 33 37 52 30 12 27 26 10 4 8</file>
         </tool>
         <tool>
           <name>ICC430</name>
-          <file> 45 0 43 33 37 52 30 39 13 27 26 10 4 8</file>
+          <file> 45 0 43 33 37 52 30 39 12 27 26 10 4 8</file>
         </tool>
       </inputs>
     </file>
@@ -176,11 +176,11 @@
       <inputs>
         <tool>
           <name>BICOMP</name>
-          <file> 45 0 43 33 37 52 30 13 27 26 10</file>
+          <file> 45 0 43 33 37 52 30 12 27 26 10</file>
         </tool>
         <tool>
           <name>ICC430</name>
-          <file> 45 0 43 33 37 52 30 39 13 27 26 10</file>
+          <file> 45 0 43 33 37 52 30 39 12 27 26 10</file>
         </tool>
       </inputs>
     </file>
@@ -198,20 +198,11 @@
       </outputs>
     </file>
     <file>
-      <name>$PROJ_DIR$\Debug\Exe\zap_test.d43</name>
-      <inputs>
-        <tool>
-          <name>XLINK</name>
-          <file> 24 46 32 41 35 49 36 42</file>
-        </tool>
-      </inputs>
-    </file>
-    <file>
       <name>$PROJ_DIR$\LIS3LV02DL.c</name>
       <outputs>
         <tool>
           <name>BICOMP</name>
-          <file> 20</file>
+          <file> 24</file>
         </tool>
         <tool>
           <name>ICC430</name>
@@ -221,11 +212,20 @@
       <inputs>
         <tool>
           <name>BICOMP</name>
-          <file> 45 0 43 33 37 52 30 13 27 26 10 22</file>
+          <file> 45 0 43 33 37 52 30 12 27 26 10 18</file>
         </tool>
         <tool>
           <name>ICC430</name>
-          <file> 45 0 43 33 37 52 30 39 13 27 26 10 22</file>
+          <file> 45 0 43 33 37 52 30 39 12 27 26 10 18</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Exe\zap_test.d43</name>
+      <inputs>
+        <tool>
+          <name>XLINK</name>
+          <file> 20 42 32 41 35 49 36 40</file>
         </tool>
       </inputs>
     </file>
@@ -234,7 +234,7 @@
       <outputs>
         <tool>
           <name>BICOMP</name>
-          <file> 18</file>
+          <file> 22</file>
         </tool>
         <tool>
           <name>ICC430</name>
@@ -244,11 +244,11 @@
       <inputs>
         <tool>
           <name>BICOMP</name>
-          <file> 45 0 43 33 37 52 30 13 27 26 10 21</file>
+          <file> 45 0 43 33 37 52 30 12 27 26 10 19</file>
         </tool>
         <tool>
           <name>ICC430</name>
-          <file> 45 0 43 33 37 52 30 39 13 27 26 10 21</file>
+          <file> 45 0 43 33 37 52 30 39 12 27 26 10 19</file>
         </tool>
       </inputs>
     </file>
@@ -266,7 +266,7 @@
       <outputs>
         <tool>
           <name>BICOMP</name>
-          <file> 19</file>
+          <file> 23</file>
         </tool>
         <tool>
           <name>ICC430</name>
@@ -276,11 +276,11 @@
       <inputs>
         <tool>
           <name>BICOMP</name>
-          <file> 45 0 43 33 37 52 30 13 27 26 8 23</file>
+          <file> 45 0 43 33 37 52 30 12 27 26 8 21</file>
         </tool>
         <tool>
           <name>ICC430</name>
-          <file> 45 0 43 33 37 52 30 39 13 27 26 8 23</file>
+          <file> 45 0 43 33 37 52 30 39 12 27 26 8 21</file>
         </tool>
       </inputs>
     </file>
@@ -289,16 +289,7 @@
       <inputs>
         <tool>
           <name>BILINK</name>
-          <file> 18 20 40 12 34 11 28 19</file>
-        </tool>
-      </inputs>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\Debug\Exe\bender_2.0.txt</name>
-      <inputs>
-        <tool>
-          <name>XLINK</name>
-          <file> 24 46 38 50 41 31 36 51 42</file>
+          <file> 22 24 44 16 34 11 28 23</file>
         </tool>
       </inputs>
     </file>
@@ -307,7 +298,16 @@
       <inputs>
         <tool>
           <name>XLINK</name>
-          <file> 24 46 38 50 32 41 35 49 36 51 42</file>
+          <file> 20 42 38 50 32 41 35 49 36 51 40</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Exe\bender_2.0.txt</name>
+      <inputs>
+        <tool>
+          <name>XLINK</name>
+          <file> 20 42 38 50 41 31 36 51 40</file>
         </tool>
       </inputs>
     </file>

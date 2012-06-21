@@ -210,35 +210,43 @@ uint8_t wait_startblock(void) {
 }
 
 /*----------------------------------------------------------------------------*/
-/* Erase blocks from offset block_start to offset block_end					  */
+/* Write multiple blocks													  */
+/* Assume data buffer 2048 bytes in size and write 4 consecutive 512-byte	  */
+/* blocks, beginning at start_offset.										  */
 /*----------------------------------------------------------------------------*/
-uint8_t erase_blocks(uint32_t block_start, uint32_t block_end) {
+uint8_t write_multiple_block(uint32_t start_offset) {
 	CS_LOW_SD();
 
-// ERASE_WR_BLK_START command
-	if (send_cmd_sd(CMD32, block_start)) {
+	wait_notbusy();				// Wait for card to be ready
+
+// WRITE_MULTIPLE_BLOCK command
+	if (send_cmd_sd(CMD25, start_offset)) {
 		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
 
-// ERASE_WR_BLK_END command
-	if (send_cmd_sd(CMD33, block_end)) {
-		CS_HIGH_SD();			// Card deselect
-		return 1;
+/* Write data buffer to 4 blocks */
+	uint8_t i;
+	uint16_t j;
+	for (i = 0; i < 4; i++) {
+// Send 'Start Block' token for each block
+		spia_send(START_BLK_TOK);
+
+		for (j = 0; j < 512; j++) {
+			spia_send(data[j]);
+		}
+
+		spia_send(0xFF); 		// Dummy CRC
+		spia_send(0xFF); 		// Dummy CRC
+
+		wait_notbusy();			// Wait for flash programming to complete
 	}
 
-// ERASE command
-	if (send_cmd_sd(CMD38, 0)) {
-		CS_HIGH_SD();			// Card deselect
-		return 1;
-	}
+	spia_send(STOP_TRANS_TOK);	// Send 'Stop Tran' token (stop transmission)
 
-// Wait for flash programming to complete
-	wait_notbusy();
-	
 // Get status
 	if (send_cmd_sd(CMD13, 0) || spia_rec())	{
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
 	

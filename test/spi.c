@@ -30,7 +30,7 @@ design. */
 // Clock source SMCLK, set reset bit high
 	UCA1CTL1 = UCSSEL__SMCLK | UCSWRST;
     UCA1BR1 = 0;					// Upper byte of divider word
-	UCA1BR0 = 3;					// Clock = SMCLK / 3
+	UCA1BR0 = 2;					// Clock = SMCLK / 2
     UCA1CTL1 &= ~UCSWRST;			// Release from reset
 }
 

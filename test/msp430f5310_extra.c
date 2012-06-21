@@ -129,7 +129,8 @@ void enable_interrupts(void) {
 /* Set up Timer0_A5															  */
 /*----------------------------------------------------------------------------*/
 void timer_config(void) {
-	TA0CCR0 = 1500;				// Count up to 1500
+	//TA0CCR0 = 1500;				// Count up to 1500
+	TA0CCR0 = 0xFFFF;			// Count up to 0xFFFF
 	TA0CCTL0 = CCIE;			// Enable interrupt for CCR0
 // SMCLK source, f/8, count up to CCR0, Timer_A clear
 	TA0CTL = TASSEL_2 | ID_3 | MC_1 | TACLR;

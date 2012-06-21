@@ -13,7 +13,7 @@
 #include "msp430f5310_extra.h"
 #include "circuit.h"
 
-#define BUFF_SIZE		2048	// Size of data buffers
+#define BUFF_SIZE		512		// Size of data buffers
 
 #define CLOCK_SPEED		12		// DCO speed (MHz)
 
@@ -44,8 +44,15 @@ uint8_t wait_for_ctrl(void);
 /*----------------------------------------------------------------------------*/
 /* Global variables															  */
 /*----------------------------------------------------------------------------*/
+// Data buffer for capturing microphone data
+// (do not refer to this variable directly--use pointers)
+	uint8_t data_mic_buff[BUFF_SIZE];
+
 // Data buffer for R/W to SD card (also used in SDLIB and UTILLIB)
-	uint8_t data[BUFF_SIZE];
+// (do not refer to this variable directly--use pointers)
+	uint8_t data_sd_buff[BUFF_SIZE];
+
+uint8_t data[BUFF_SIZE]; ///TEST
 
 	uint8_t time_cont;
 
@@ -201,6 +208,10 @@ uint8_t start_logging(void) {
 		return 1;					// Voltage is too low 
 	}
 
+/* Pointers to data buffers */
+	uint8_t *data_mic = data_mic_buff;
+	uint8_t *data_sd = data_sd_buff;
+
 	uint32_t block_offset;			// Offset of each block to write
 	uint32_t max_offset;			// Maximum offset of 2 GB SD card
 	uint16_t flash_counter;			// Used for timing LED flashes
@@ -212,8 +223,9 @@ uint8_t start_logging(void) {
 
 	logging = 1;					// Device is now in logging state
 	stop_flag = 0;					// Change to 1 to signal stop logging
-	max_offset = 0x80000000;
+	max_offset = 0x75400000;		// ~1.967 GB
 	flash_counter = 0;
+	time_cont = 0;
 
 	interrupt_config();				// Configure interrupts
 	enable_interrupts();			// Enable interrupts (for CTRL button)
@@ -222,33 +234,50 @@ uint8_t start_logging(void) {
 
 	FEED_WATCHDOG;
 
+/* Fill temporary data buffer with arbitrary numbers */
+	uint32_t i;
+	uint8_t j;
+	for (i = 0, j = 0x00; i < BUFF_SIZE; i++, j++) {
+		data_mic[i] = j;
+	}
+
+/* Transfer temporary data to primary data buffer */
+	uint8_t *swap = data_sd;
+	data_sd = data_mic;
+	data_mic = swap;
+	tmp8 = data_sd[5];
+	tmp8++;
+
 	while (stop_flag == 0) {
 		for (block_offset = 0;
 			block_offset < max_offset && stop_flag == 0;
 			block_offset += 512) {
 
 /* Check for low voltage */
-			voltage = adc_read();
-			if (voltage < VOLTAGE_THRSHLD) {
-				stop_flag = 1;		// Voltage is too low 
-			}
+//			voltage = adc_read();
+//			if (voltage < VOLTAGE_THRSHLD) {
+//				stop_flag = 1;		// Voltage is too low 
+//			}
 
-// Fill data buffer with arbitrary numbers
-			uint32_t i;
-			uint8_t j;
-			for (i = 0, j = 0x00; i < BUFF_SIZE; i++, j++) {
-				data[i] = j;
-			}
+// Multiple block write
+//			if (write_multiple_block(block_offset)) return 2;
+
+// Multiple block write
+//			if (write_multiple_block(0)) return 2;
+//			if (write_multiple_block(2048)) return 2;
+//			if (write_multiple_block(4096)) return 2;
+//			if (write_multiple_block(6144)) return 2;
+//			if (write_multiple_block(8192)) return 2;
 
 // Write block
 			if (write_block(block_offset, 512)) return 2;
 
 /* Flash LED every 50 block writes */
-			flash_counter++;
-			if (flash_counter == 50) {
-				LED1_TOGGLE();
-				flash_counter = 0;
-			}
+//			flash_counter++;
+//			if (flash_counter == 50) {
+//				LED1_TOGGLE();
+//				flash_counter = 0;
+//			}
 
 			FEED_WATCHDOG;
 		}
@@ -392,10 +421,10 @@ __interrupt void CCR0_ISR(void) {
 	TA0CCTL0 &= ~(CCIFG);		// Clear interrupt flag
 	time_cont++;				// Increment high byte of timer
 /* DEBUG: Check the clock speed */
-/*	if (time_cont == 183) {
-		LED1_DOT();
+	if (time_cont == 23) {
+		LED1_TOGGLE();
 		time_cont = 0;
-	}*/
+	}
 }
 
 /*----------------------------------------------------------------------------*/
