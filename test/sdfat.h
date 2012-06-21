@@ -14,14 +14,14 @@
 #define CMD13	13	// SEND_STATUS
 #define CMD17	17	// READ_SINGLE_BLOCK
 #define CMD24	24	// WRITE_BLOCK
-#define CMD25	25	// WRITE_MULTIPLE_BLOCK
+//#define CMD25	25	// WRITE_MULTIPLE_BLOCK
 #define CMD55	55	// APP_CMD
 #define CMD58	58	// READ_OCR
 #define ACMD41	41	// SD_SEND_OP_COND
 
 // SD Card Tokens for Multiple Block Write
-#define START_BLK_TOK	0xFC	// 'Start Block' token
-#define STOP_TRANS_TOK	0xFD	// 'Stop Tran' token (stop transmission)
+//#define START_BLK_TOK	0xFC	// 'Start Block' token
+//#define STOP_TRANS_TOK	0xFD	// 'Stop Tran' token (stop transmission)
 
 // SD Card type flags (CardType)
 #define CT_MMC				0x01				// MMC ver 3
@@ -37,16 +37,16 @@ uint8_t init_sd(void);
 void go_idle_sd(void);
 uint8_t send_cmd_sd(uint8_t cmd, uint32_t arg);
 uint8_t send_acmd_sd(uint8_t acmd, uint32_t arg);
-uint8_t write_multiple_block(uint32_t start_offset);
-uint8_t write_block(uint32_t offset, uint16_t count);
-uint8_t read_block(uint32_t offset);
-uint16_t find_cluster(void);
-uint8_t update_fat(uint16_t index, uint16_t num);
-uint8_t update_dir_table(	uint16_t cluster, uint32_t file_size,
-							uint16_t file_num, uint8_t type);
-uint8_t read_boot_sector(void);
-uint8_t parse_boot_sector(void);
-uint16_t get_file_num(void);
-void format_sd(void);
+//uint8_t write_multiple_block(uint32_t start_offset);
+uint8_t write_block(uint8_t *data, uint32_t offset, uint16_t count);
+uint8_t read_block(uint8_t *data, uint32_t offset);
+//uint16_t find_cluster(void);
+//uint8_t update_fat(uint16_t index, uint16_t num);
+//uint8_t update_dir_table(	uint16_t cluster, uint32_t file_size,
+//							uint16_t file_num, uint8_t type);
+//uint8_t read_boot_sector(void);
+//uint8_t parse_boot_sector(void);
+//uint16_t get_file_num(void);
+//void format_sd(void);
 
 #endif
