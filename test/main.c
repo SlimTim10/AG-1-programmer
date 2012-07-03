@@ -58,7 +58,7 @@ uint8_t wait_for_ctrl(void);
 
 uint8_t data[BUFF_SIZE]; ///TEST
 
-	uint8_t new_sample;				// Simulate new sample input			
+	uint16_t new_sample;			// Simulate new sample input			
 // Count 512 samples before writing to SD card
 	uint16_t sample_count;
 // Flag to write data to SD card when buffer is full
@@ -409,10 +409,9 @@ __interrupt void CCR0_ISR(void) {
 	TA0CCTL0 &= ~(CCIFG);		// Clear interrupt flag
 
 // Take in simulated new sample data
-	data_mic[new_sample] = new_sample;
-	new_sample++;				// Increment new sample
-
-	sample_count++;
+	new_sample++;				// Simulate new sample data
+	data_mic[sample_count] = new_sample;
+	sample_count++;				// Increment sample counter
 
 /* Swap addresses of mic data and SD data upon buffer full */
 	if (sample_count == BUFF_SIZE) {
