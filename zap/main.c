@@ -28,12 +28,7 @@
 // Infinite loop
 #define HANG()			for (;;);
 
-extern uint32_t file_cluster_offset;
-extern uint32_t bytes_per_cluster;
-extern uint8_t sectors_per_cluster;
-
 uint8_t start_logging(void);
-uint8_t num_into_buffer(uint32_t, uint8_t, uint16_t);
 void LED1_DOT(void);
 void LED1_DASH(void);
 void LED1_PANIC(void);
@@ -58,11 +53,9 @@ uint8_t wait_for_ctrl(void);
 	uint8_t *data_mic;
 	uint8_t *data_sd;
 
-uint8_t data[BUFF_SIZE]; ///TEST
-
-	uint16_t new_sample;			// Simulate new sample input			
+	uint8_t new_sample;				// New sample input byte
 // Count 512 samples before writing to SD card
-	uint16_t sample_count;
+	uint16_t byte_num;
 // Flag to write data to SD card when buffer is full
 	uint8_t dump_data;
 
@@ -172,7 +165,30 @@ idle_state:
 			avail = init_sd();
 		}
 
+/* Set pointers to data buffer addresses */
+		data_mic = data_mic_buff;
+		data_sd = data_sd_buff;
+
 		FEED_WATCHDOG;
+
+// Find and read the FAT16 boot sector
+		if (read_boot_sector(data_sd)) {
+			LED1_ON();
+			HANG();
+		}
+
+		FEED_WATCHDOG;
+
+// Parse the FAT16 boot sector
+		if (parse_boot_sector(data_sd)) {
+			LED1_PANIC();		// Flash LED to show "panic"
+			goto idle_state;	// Go back to idle state
+		}
+
+		FEED_WATCHDOG;
+
+// Set up microphone
+///TODO
 	
 		LED1_ON();
 	
@@ -218,50 +234,68 @@ uint8_t start_logging(void) {
 		return 1;					// Voltage is too low 
 	}
 
-/* Set pointers to data buffer addresses */
-	data_mic = data_mic_buff;
-	data_sd = data_sd_buff;
-
-	uint32_t block_offset;			// Offset of each block to write
-	uint32_t max_offset;			// Maximum offset of 2 GB SD card
 	uint16_t flash_counter;			// Used for timing LED flashes
 
-/* Temporary storage variables */
-	uint8_t tmp8;
-	uint16_t tmp16;
-	uint32_t tmp32;
+/* File tracking variables */
+	uint16_t file_num;				// File name number suffix
+	uint16_t start_cluster;			// The current file's starting cluster
+	uint8_t block_num;				// Current block number
+	uint32_t block_offset;			// Offset of each block to write
+	uint16_t cluster_num;			// Current cluster number
+	uint32_t cluster_offset;		// Offset of current cluster
+	uint32_t total_bytes;			// Total bytes in file
 
+/* Temporary storage variables */
+//	uint8_t tmp8;
+	uint16_t tmp16;
+//	uint32_t tmp32;
+
+/* Initialize global variables */
 	logging = 1;					// Device is now in logging state
 	stop_flag = 0;					// Change to 1 to signal stop logging
-	max_offset = 0x75400000;		// ~1.967 GB
-	flash_counter = 0;
 	new_sample = 0;
-	sample_count = 0;
+	byte_num = 0;
 	dump_data = 0;
 
 	interrupt_config();				// Configure interrupts
 	enable_interrupts();			// Enable interrupts (for CTRL button)
 
-	timer_config();					// Set up Timer0_A5
-
 	FEED_WATCHDOG;
 
-	while (stop_flag == 0) {
-		for (block_offset = 0;
-			block_offset < max_offset && stop_flag == 0;
-			block_offset += 512) {
+/* Find first free cluster (start search at cluster 2).  If find_cluster
+returns 0, the disk is full */
+	if ((start_cluster = find_cluster(data_sd)) == 0) return 2;
 
-/* Check for low voltage */
-//			voltage = adc_read();
-//			if (voltage < VOLTAGE_THRSHLD) {
-//				stop_flag = 1;		// Voltage is too low 
-//			}
+/* Initialize loop variables */
+	flash_counter = 0;
+	block_num = 0;
+	cluster_num = start_cluster;
+	total_bytes = 0;
 
-			while (!dump_data);
+	timer_config();					// Set up Timer0_A5
 
+// cluster_num becomes 0 when the disk is full
+// View break statements at end of loop
+	while (cluster_num > 0) {
+// Update current cluster offset
+		cluster_offset = get_cluster_offset(cluster_num);
+
+// Loop while block number is valid (not end of cluster) and stop flag is low
+		while (valid_block(block_num) && stop_flag == 0) {
+
+// Wait for data buffer to fill during timer interrupt
+			while (!dump_data && stop_flag == 0) {
+				FEED_WATCHDOG;
+			}
+
+// Get the current block offset
+			block_offset = cluster_offset + block_num * 512;
 // Write block
 			if (write_block(data_sd, block_offset, 512)) return 2;
-			dump_data = 0;
+			dump_data = 0;			// Set dump data flag low
+			block_num++;			// Next block
+// Update total bytes in file
+			total_bytes += 512;
 
 /* Flash LED every 50 block writes */
 			flash_counter++;
@@ -270,9 +304,40 @@ uint8_t start_logging(void) {
 				flash_counter = 0;
 			}
 
+/* Check for low voltage */
+			voltage = adc_read();
+			if (voltage < VOLTAGE_THRSHLD) {
+				stop_flag = 1;		// Set stop flag high
+			}
+
 			FEED_WATCHDOG;
-		}
-	}
+		}							// Finished data for a cluster
+
+// If the signal to stop was given then do not modify the FAT (the chain end
+//bytes are already written)
+		if (stop_flag == 1) break;
+
+// Find next free cluster to continue logging data or stop logging if the max
+//file size has been met
+		if ((tmp16 = find_cluster(data_sd)) == 0) break;
+
+// Update FAT (point used cluster to next free cluster)
+		if (update_fat(data_sd, cluster_num * 2, tmp16)) return 1;
+
+		cluster_num = tmp16;		// Next cluster
+		block_num = 0;				// Reset block number
+
+		FEED_WATCHDOG;
+	}								// End of logging loop
+
+// Get appropriate number for file name suffix
+	file_num = get_file_num(data_sd);
+
+	FEED_WATCHDOG;
+
+// Update the directory table
+	if (update_dir_table(data_sd, start_cluster, total_bytes, file_num))
+		return 1;
 
 	__disable_interrupt();			// Disable interrupts
 	logging = 0;					// Device is not logging
@@ -412,15 +477,15 @@ __interrupt void CCR0_ISR(void) {
 
 // Take in simulated new sample data
 	new_sample++;				// Simulate new sample data
-	data_mic[sample_count] = new_sample;
-	sample_count++;				// Increment sample counter
+	data_mic[byte_num] = new_sample;
+	byte_num++;					// Increment sample counter
 
 /* Swap addresses of mic data and SD data upon buffer full */
-	if (sample_count == BUFF_SIZE) {
+	if (byte_num == BUFF_SIZE) {
 		uint8_t *swap = data_sd;
 		data_sd = data_mic;
 		data_mic = swap;
-		sample_count = 0;		// Reset sample count
+		byte_num = 0;			// Reset sample count
 		dump_data = 1;			// Set dump data flag
 	}
 
@@ -452,15 +517,9 @@ __interrupt void PORT1_ISR(void) {
 			debounce = 0x1000;
 			while (debounce--);	// Wait for debouncing
 	
-/* Wait until button is released or hold time (2 sec) is met */
-			rtc_restart();		// Restart RTC
-			sec = RTCSEC;
-			while (ctrl_high() && sec < 2) {
+// Wait until button is released
+			while (ctrl_high()) {
 				FEED_WATCHDOG;
-// Get new RTCSEC value when RTC is ready
-				if (rtc_rdy()) {
-					sec = RTCSEC;
-				}
 			}
 	
 			LED1_DOT();			// Indicate button press to user

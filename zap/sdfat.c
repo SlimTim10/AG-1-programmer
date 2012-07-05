@@ -69,61 +69,67 @@ uint8_t init_sd(void) {
 	uint8_t short_timeout = 10;
 	uint16_t tmr, long_timeout = 0x1000;
 	uint8_t ocr[4];
-	uint8_t card_type; // SD 1.0, 1.1, 2.0
+	uint8_t card_type;			// SD 1.0, 1.1, 2.0
 	uint8_t n;
-	
-	CS_HIGH_SD(); // Card deselect
-	
+
+	CS_HIGH_SD();				// Card deselect
+
 // Must supply min of 74 clock cycles with CS high
 	for (uint8_t i = 0; i < 80; i++) spia_send(0xFF);
 	
-	CS_LOW_SD(); // Card select
-	
-	/* Enter SPI mode */
+	CS_LOW_SD();				// Card select
+
+/* Enter SPI mode */
 	for (tmr = short_timeout; tmr && (send_cmd_sd(CMD0, 0) != 1); tmr--);
 	if (tmr == 0) {
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
-	
-	/* Verify SD 2.0 and 2.7-3.6V */
+
+/* Verify SD 2.0 and 2.7-3.6V */
 	if (send_cmd_sd(CMD8, 0x1AA) != 0x01) {
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
-	for (n = 0; n < 4; n++) ocr[n] = spia_rec(); // Get response
-	if (ocr[2] != 0x01 || ocr[3] != 0xAA) { // 2.7-3.6 V
-		CS_HIGH_SD(); // Card deselect
+// Get response
+	for (n = 0; n < 4; n++) ocr[n] = spia_rec();
+// 2.7-3.6 V
+	if (ocr[2] != 0x01 || ocr[3] != 0xAA) {
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
-	
-	/* Wait for leaving idle state (ACMD41 with HCS bit) */
+
+/* Wait for leaving idle state (ACMD41 with HCS bit) */
 	for (tmr = long_timeout; tmr && (send_acmd_sd(ACMD41, 1UL << 30) != 0);
 		tmr--);
 	if (tmr == 0) {
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
-	
-	/* Check High Capacity support (SDHC) */
+
+/* Check High Capacity support (SDHC) */
 	if (send_cmd_sd(CMD58, 0)) {
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
-	for (n = 0; n < 4; n++) ocr[n] = spia_rec(); // Get response
+// Get response
+	for (n = 0; n < 4; n++) ocr[n] = spia_rec();
+// SD 2.0 (HC or not)
 	card_type = (ocr[0] & 0x40) ?
-		CT_SD2 | CT_BLOCK : CT_SD2; // SD 2.0 (HC or not)
-	
-	CS_HIGH_SD(); // Card deselect
-	
-	if (card_type == CT_SD2) { // SD 2.0
+		CT_SD2 | CT_BLOCK : CT_SD2;
+
+	CS_HIGH_SD();				// Card deselect
+
+	if (card_type == CT_SD2) {	// SD 2.0
 		return 0;
 	}
-	
-	if (card_type == (CT_SD2 | CT_BLOCK)) {// SDHC
+
+// SDHC
+	if (card_type == (CT_SD2 | CT_BLOCK)) {
 		return 0;
 	}
-	
+
+// Fail: unrecognized card type
 	return 1;
 }
 
@@ -131,11 +137,11 @@ uint8_t init_sd(void) {
 /* Send command to enter idle state											  */
 /*----------------------------------------------------------------------------*/
 void go_idle_sd() {
-	CS_LOW_SD(); // Card select
+	CS_LOW_SD();				// Card select
 	
 	send_cmd_sd(CMD0, 0);
 
-	// Note: leave CS low to refrain from consuming power
+// Note: leave CS low to refrain from consuming power
 }
 
 /*----------------------------------------------------------------------------*/
@@ -145,15 +151,17 @@ uint8_t send_cmd_sd(uint8_t cmd, uint32_t arg) {
 	uint8_t status;
 	uint8_t crc;
 	
-	spia_send(cmd | 0x40); // Send command
+	spia_send(cmd | 0x40);		// Send command
 	
 // Send argument
 	for (int8_t s = 24; s >= 0; s -= 8) spia_send(arg >> s);
 	
-	/* Send CRC */
+/* Send CRC */
 	crc = 0xFF;
-	if (cmd == CMD0) crc = 0x95; // correct crc for CMD0 with arg 0
-	if (cmd == CMD8) crc = 0x87; // correct crc for CMD8 with arg 0x1AA
+// correct crc for CMD0 with arg 0
+	if (cmd == CMD0) crc = 0x95;
+// correct crc for CMD8 with arg 0x1AA
+	if (cmd == CMD8) crc = 0x87;
 	spia_send(crc);
 	
 // Wait for response
@@ -171,18 +179,6 @@ uint8_t send_acmd_sd(uint8_t acmd, uint32_t arg) {
 	return send_cmd_sd(acmd, arg);
 }
 
-// OLD
-///*----------------------------------------------------------------------------*/
-///* Wait for the card														  */
-///*----------------------------------------------------------------------------*/
-//uint8_t wait_notbusy(uint16_t timeout) {
-//	for (uint16_t i = 0; i < timeout; i++) {
-//		if (spia_rec() == 0xFF) return 0;
-//	}
-//
-//	return 1;
-//}
-
 /*----------------------------------------------------------------------------*/
 /* Wait for the card														  */
 /*----------------------------------------------------------------------------*/
@@ -197,10 +193,10 @@ uint8_t wait_startblock(void) {
 	uint8_t rec;
 	for (uint16_t i = 0; i < 500; i++) {
 		rec = spia_rec();
-		if (rec == 0xFE) { // Start Block token received
+		if (rec == 0xFE) {		// Start Block token received
 			return 0;
 		}
-		if (rec != 0xFF) {
+		if (rec != 0xFF) {		// Error
 			return 1;
 		}
 	}
@@ -248,25 +244,25 @@ uint8_t wait_startblock(void) {
 //		return 1;
 //	}
 //	
-//	CS_HIGH_SD();
+//	CS_HIGH_SD();				// Card deselect
 //
 //	return 0;
 //}
 
 /*----------------------------------------------------------------------------*/
-/* Write the first count bytes in data buffer 'data' starting at offset		  */
+/* Write the first count bytes in the given data buffer starting at offset	  */
 /*----------------------------------------------------------------------------*/
 uint8_t write_block(uint8_t *data, uint32_t offset, uint16_t count) {
 	CS_LOW_SD();
 	
 // WRITE_BLOCK command
 	if (send_cmd_sd(CMD24, offset)) {
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
-	spia_send(0xFE); // Write Single Block token
+	spia_send(0xFE);			// Write Single Block token
 	
-	/* Write data bytes (up to 512) */
+/* Write data bytes (up to 512) */
 	if (count > 512) count = 512;
 	uint16_t i;
 	for (i = 0; i < count; i++) {
@@ -276,11 +272,11 @@ uint8_t write_block(uint8_t *data, uint32_t offset, uint16_t count) {
 // Padding to fill block
 	for (; i < 512; i++) spia_send(0x00);
 	
-	spia_send(0xFF);  // Dummy CRC
-	spia_send(0xFF);  // Dummy CRC
+	spia_send(0xFF); 			// Dummy CRC
+	spia_send(0xFF);			// Dummy CRC
 	
 	if ((spia_rec() & 0x1F) != 0x05) {
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
 
@@ -289,38 +285,38 @@ uint8_t write_block(uint8_t *data, uint32_t offset, uint16_t count) {
 	
 // Get status
 	if (send_cmd_sd(CMD13, 0) || spia_rec())	{
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
 	
-	CS_HIGH_SD();
+	CS_HIGH_SD();				// Card deselect
 	
 	return 0;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Read 512 bytes from offset and store them in data buffer 'data'			  */
+/* Read 512 bytes from offset and store them in the given data buffer		  */
 /*----------------------------------------------------------------------------*/
 uint8_t read_block(uint8_t *data, uint32_t offset) {
-	CS_LOW_SD(); // Card select
+	CS_LOW_SD();				// Card select
 	
 // READ_SINGLE_BLOCK command with offset as argument
 	if (send_cmd_sd(CMD17, offset)) {
-		CS_HIGH_SD(); // Card deselect
+		CS_HIGH_SD();			// Card deselect
 		return 1;
 	}
 
 	if (wait_startblock()) {
-		CS_HIGH_SD(); // Card deselect
-		return 1; // Wait for the start of the block
+		CS_HIGH_SD();			// Card deselect
+		return 1;				// Wait for the start of the block
 	}
 	
-	/* Read bytes */
+/* Read bytes */
 	for (uint16_t i = 0; i < 512; i++) {
 		data[i] = spia_rec();
 	}
 	
-	CS_HIGH_SD(); // Card deselect
+	CS_HIGH_SD();				// Card deselect
 	
 	return 0;
 }
@@ -331,294 +327,303 @@ uint8_t read_block(uint8_t *data, uint32_t offset) {
 /* Return free cluster index (>0).											  */
 /* Return 0 on error or if there are no more free clusters.					  */
 /*----------------------------------------------------------------------------*/
-//uint16_t find_cluster(uint8_t *data) {
-//	uint32_t block_offset = 0;
-//	uint16_t i, j;
-//
-//	for (i = 0; i < fat_size; i += 2) {
-//		j = i % 512;					// Cluster index relative to block
-//				
-///* Read each new block of the FAT */
-//		if (j == 0) {
-//			block_offset = fat_offset + i;
-//			if (read_block(block_offset)) return 0;
-//		}
-//		
-//		if (data[j] == 0x00 && data[j+1] == 0x00) {
-//			
-///* Set cluster to 0xFFFF to indicate last cluster of file (will be modified if
-//file data continues) */
-//			data[j] = 0xFF;
-//			data[j+1] = 0xFF;
-//
-//// Write to FAT 
-//			if (write_block(block_offset, 512)) return 0;
-//
-//// Write to second FAT 
-//			if (number_of_fats > 1) {
-//				if (write_block(block_offset + fat_size, 512)) return 0;
-//			}
-//
-//			return (uint16_t)(i / 2);	// Return free cluster index
-//		}
-//	}
-//	
-//// Failed to find a free cluster (disk may be full)
-//	return 0;
-//}
+uint16_t find_cluster(uint8_t *data) {
+	uint32_t block_offset = 0;
+	uint16_t i, j;
+
+	for (i = 0; i < fat_size; i += 2) {
+		j = i % 512;			// Cluster index relative to block
+				
+/* Read each new block of the FAT */
+		if (j == 0) {
+			block_offset = fat_offset + i;
+			if (read_block(data, block_offset)) return 0;
+		}
+		
+		if (data[j] == 0x00 && data[j+1] == 0x00) {
+			
+/* Set cluster to 0xFFFF to indicate end of cluster chain for current file
+(will be modified if file data continues) */
+			data[j] = 0xFF;
+			data[j+1] = 0xFF;
+
+// Write to FAT 
+			if (write_block(data, block_offset, 512)) return 0;
+
+// Write to second FAT 
+			if (number_of_fats > 1) {
+				if (write_block(data, block_offset + fat_size, 512)) return 0;
+			}
+
+// Return free cluster index
+			return (uint16_t)(i / 2);
+		}
+	}
+	
+// Failed to find a free cluster (disk may be full)
+	return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Return the offset of the given cluster number							  */
+/*----------------------------------------------------------------------------*/
+uint32_t get_cluster_offset(uint16_t clust) {
+	return file_cluster_offset + ((clust - 2) * bytes_per_cluster);
+}
+
+/*----------------------------------------------------------------------------*/
+/* Return true iff block number is less than sectors_per_cluster			  */
+/*----------------------------------------------------------------------------*/
+uint8_t valid_block(uint8_t block) {
+	return block < sectors_per_cluster;
+}
 
 /*----------------------------------------------------------------------------*/
 /* Update the FAT															  */
 /* Replace the cluster word at index with num.								  */
 /*----------------------------------------------------------------------------*/
-//uint8_t update_fat(uint8_t *data, uint16_t index, uint16_t num) {
-//	uint32_t block_offset = fat_offset + index - (index % 512);
-//	
-//// Read the right block of the FAT 
-//	if (read_block(block_offset)) return 1;
-//
-//	index = index % 512;		// Change index from absolute to relative
-//
-///* Point cluster word at index to num cluster */
-//	data[index] = (uint8_t)num;
-//	data[index+1] = (uint8_t)(num >> 8);
-//
-//// Write to FAT 
-//	if (write_block(block_offset, 512)) return 1;
-//
-//// Write to second FAT 
-//	if (number_of_fats > 1) {
-//		if (write_block(block_offset + fat_size, 512)) return 1;
-//	}
-//
-//	return 0;
-//}
+uint8_t update_fat(uint8_t *data, uint16_t index, uint16_t num) {
+	uint32_t block_offset = fat_offset + index - (index % 512);
+	
+// Read the right block of the FAT 
+	if (read_block(data, block_offset)) return 1;
+
+	index = index % 512;		// Change index from absolute to relative
+
+/* Point cluster word at index to num cluster */
+	data[index] = (uint8_t)num;
+	data[index+1] = (uint8_t)(num >> 8);
+
+// Write to FAT 
+	if (write_block(data, block_offset, 512)) return 1;
+
+// Write to second FAT 
+	if (number_of_fats > 1) {
+		if (write_block(data, block_offset + fat_size, 512)) return 1;
+	}
+
+	return 0;
+}
 
 /*----------------------------------------------------------------------------*/
 /* Update directory table													  */
 /* cluster: file's starting cluster											  */
 /* file_size: total bytes in file											  */
 /* file_num: file name number suffix										  */
-/* type: ACCEL_DATA or GYRO_DATA											  */
 /*----------------------------------------------------------------------------*/
-//uint8_t update_dir_table(	uint8_t *data,
-//							uint16_t cluster,
-//							uint32_t file_size,
-//							uint16_t file_num,
-//							uint8_t type) {
-//	/*------------------------------------------------------------------------*/
-//	/* Read the directory table.											  */
-//	/* Find the last entry and prepare the next directory table entry.		  */
-//	/*------------------------------------------------------------------------*/
-//	uint32_t i, j;
-//	for (i = 0, j = 0; i < dir_table_size; i += 32) {
-//		if (i % bytes_per_sector == 0) {
-//// Next sector
-//			if (read_block(dir_table_offset + i)) return 1;
-//			if (i > 0) j++;
-//		}
-//		
-//// Check for empty entry or deleted file (0xE5 prefix)
-//		if (data[i % 512] == 0x00 || data[i % 512] == 0xE5) {
-//			break;				// Found the entry offset
-//		}
-//	}
-//// Check if directory table is full
-//	if ((i + (512 * j)) >= dir_table_size) return 1;
-//	
-//// Offset of directory table entry
-//	uint32_t dir_entry_offset = dir_table_offset + i;
-//
-//// Set filename prefix based on type of data ("ACCL" or "GYRO")
-//	if (type == ACCEL_DATA) {
-//		dte[0] = 'A'; dte[1] = 'C'; dte[2] = 'C'; dte[3] = 'L';
-//	} else if (type == GYRO_DATA) {
-//		dte[0] = 'G'; dte[1] = 'Y'; dte[2] = 'R'; dte[3] = 'O';
-//	} else {
-//		return 1;				// Invalid type
-//	}
-//
-///* Set filename suffix (e.g., "012") */
-//	dte[4] = ((file_num / 100) % 10) + 0x30;
-//	dte[5] = ((file_num / 10) % 10) + 0x30;
-//	dte[6] = (file_num % 10) + 0x30;
-//
-///* Set starting cluster */
-//	dte[27] = (uint8_t)(cluster >> 8);
-//	dte[26] = (uint8_t)(cluster);
-//
-///* Set file size */
-//	dte[31] = (uint8_t)(file_size >> 24);
-//	dte[30] = (uint8_t)(file_size >> 16);
-//	dte[29] = (uint8_t)(file_size >> 8);
-//	dte[28] = (uint8_t)(file_size);
-//
-///* Update directory table with new directory table entry */
-//// Recall: at this point, i = index of data at beginning of new dte
-//	for (j = 0; j < 32; i++, j++) {
-//		data[i] = dte[j];
-//	}
-//	
-///* We can only write blocks of bytes_per_sector bytes, so make sure the offset
-//we're writing to is at the beginning of a sector */
-//	write_block(dir_entry_offset - (dir_entry_offset % bytes_per_sector), 512);
-//	
-//	return 0;
-//}
+uint8_t update_dir_table(	uint8_t *data,
+							uint16_t cluster,
+							uint32_t file_size,
+							uint16_t file_num) {
+/*------------------------------------------------------------------------*/
+/* Read the directory table.											  */
+/* Find the last entry and prepare the next directory table entry.		  */
+/*------------------------------------------------------------------------*/
+	uint32_t i, j;
+	for (i = 0, j = 0; i < dir_table_size; i += 32) {
+		if (i % bytes_per_sector == 0) {
+// Next sector
+			if (read_block(data, dir_table_offset + i)) return 1;
+			if (i > 0) j++;
+		}
+		
+// Check for empty entry or deleted file (0xE5 prefix)
+		if (data[i % 512] == 0x00 || data[i % 512] == 0xE5) {
+			break;				// Found the entry offset
+		}
+	}
+// Check if directory table is full
+	if ((i + (512 * j)) >= dir_table_size) return 1;
+	
+// Offset of directory table entry
+	uint32_t dir_entry_offset = dir_table_offset + i;
+
+// Set filename prefix
+	dte[0] = 'Z'; dte[1] = 'A'; dte[2] = 'P'; dte[3] = 'P';
+
+/* Set filename suffix (e.g., "012") */
+	dte[4] = ((file_num / 100) % 10) + 0x30;
+	dte[5] = ((file_num / 10) % 10) + 0x30;
+	dte[6] = (file_num % 10) + 0x30;
+
+/* Set starting cluster */
+	dte[27] = (uint8_t)(cluster >> 8);
+	dte[26] = (uint8_t)(cluster);
+
+/* Set file size */
+	dte[31] = (uint8_t)(file_size >> 24);
+	dte[30] = (uint8_t)(file_size >> 16);
+	dte[29] = (uint8_t)(file_size >> 8);
+	dte[28] = (uint8_t)(file_size);
+
+/* Update directory table with new directory table entry */
+// Recall: at this point, i = index of data at beginning of new dte
+	for (j = 0; j < 32; i++, j++) {
+		data[i] = dte[j];
+	}
+	
+/* We can only write blocks of bytes_per_sector bytes, so make sure the offset
+we're writing to is at the beginning of a sector */
+	write_block(data,
+		dir_entry_offset - (dir_entry_offset % bytes_per_sector), 512);
+	
+	return 0;
+}
 
 /*----------------------------------------------------------------------------*/
 /* Find the boot sector, read it (store in data buffer), and verify its		  */
 /* validity																	  */
 /*----------------------------------------------------------------------------*/
-//uint8_t read_boot_sector(uint8_t *data) {
-///* Find boot sector */
-//	hidden_sectors = 0;
-//	boot_offset = 0;
-//// Read first sector
-//	if (read_block(0)) return 1;
-//	
-//// Check if the first sector is the boot sector
-//	if (data[0x00] == 0x00) {
-//// First sector is not boot sector, find location of boot sector
-//// number of hidden sectors: 4 bytes at offset 0x1C6
-//		hidden_sectors = data[0x1C6] |
-//						 ((uint32_t)data[0x1C7] << 8) |
-//						 ((uint32_t)data[0x1C8] << 16) |
-//						 ((uint32_t)data[0x1C9] << 24);
-//		boot_offset = hidden_sectors * 512; // Location of boot sector
-//	// Read boot sector and store in data buffer
-//		if (read_block(boot_offset)) return 1;
-//	}
-//	
-//// Verify validity of boot sector
-//	if ((data[0x1FE] | (data[0x1FF] << 8)) != 0xAA55) return 1;
-//
-//	return 0;
-//}
+uint8_t read_boot_sector(uint8_t *data) {
+/* Find boot sector */
+	hidden_sectors = 0;
+	boot_offset = 0;
+// Read first sector
+	if (read_block(data, 0)) return 1;
+	
+// Check if the first sector is the boot sector
+	if (data[0x00] == 0x00) {
+// First sector is not boot sector, find location of boot sector
+// number of hidden sectors: 4 bytes at offset 0x1C6
+		hidden_sectors = data[0x1C6] |
+						 ((uint32_t)data[0x1C7] << 8) |
+						 ((uint32_t)data[0x1C8] << 16) |
+						 ((uint32_t)data[0x1C9] << 24);
+// Location of boot sector
+		boot_offset = hidden_sectors * 512;
+// Read boot sector and store in data buffer
+		if (read_block(data, boot_offset)) return 1;
+	}
+	
+// Verify validity of boot sector
+	if ((data[0x1FE] | (data[0x1FF] << 8)) != 0xAA55) return 1;
+
+	return 0;
+}
 
 /*----------------------------------------------------------------------------*/
 /* Parse the FAT16 boot sector												  */
 /*----------------------------------------------------------------------------*/
-//uint8_t parse_boot_sector(uint8_t *data) {
-//// Is the SD card formatted to FAT16?
-//	if ( !(data[0x36] == 'F' &&
-//		   data[0x37] == 'A' &&
-//		   data[0x38] == 'T' &&
-//		   data[0x39] == '1' &&
-//		   data[0x3A] == '6') ) {
-//		return 1;
-//	}
-//
-//	/*------------------------------------------------------------------------*/
-//	/* Fill valuable global variables										  */
-//	/*																		  */
-//	/* bytes per sector:			2 bytes	at offset 0x0B					  */
-//	/* sectors per cluster:			1 byte	at offset 0x0D					  */
-//	/* number of reserved sectors:	2 bytes	at offset 0x0E					  */
-//	/* number of FATs:				1 byte at offset 0x10					  */
-//	/* max directory entries:		2 bytes	at offset 0x11					  */
-//	/* number of sectors per FAT:	2 bytes	at offset 0x16					  */
-//	/* total sectors:				4 bytes	at offset 0x20					  */
-//	/*------------------------------------------------------------------------*/
-//	bytes_per_sector = data[0x0B] | (data[0x0C] << 8);
-//	sectors_per_cluster = data[0x0D];
-//	bytes_per_cluster = bytes_per_sector * sectors_per_cluster;
-//	reserved_sectors = data[0x0E] | (data[0x0F] << 8);
-//	number_of_fats = data[0x10];
-//	dir_table_size = (data[0x11] | (data[0x12] << 8)) * 32;
-//	sectors_per_fat = data[0x16] | (data[0x17] << 8);
-//	total_sectors = data[20] | ((uint32_t)data[21] << 8) |
-//		((uint32_t)data[22] << 16) | ((uint32_t)data[23] << 24);
-//	
-//// Only compatible with sectors of 512 bytes
-//	if (bytes_per_sector != 512) return 2;
-//	
-///* Get location of FAT */
-//	fat_size = (uint32_t)bytes_per_sector * (uint32_t)sectors_per_fat;
-//	fat_offset = (uint32_t)reserved_sectors * (uint32_t)bytes_per_sector +
-//				 boot_offset;
-//	
-//// Get location of directory table
-//	dir_table_offset = (uint32_t)bytes_per_sector *
-//						(uint32_t)reserved_sectors +
-//						512 * (uint32_t)sectors_per_fat *
-//		(uint32_t)number_of_fats +
-//		boot_offset;
-//	
-//// Get location of first cluster to be used by file data
-//	file_cluster_offset = dir_table_offset + dir_table_size;
-//
-//	return 0;
-//}
+uint8_t parse_boot_sector(uint8_t *data) {
+// Is the SD card formatted to FAT16?
+	if ( !(data[0x36] == 'F' &&
+		   data[0x37] == 'A' &&
+		   data[0x38] == 'T' &&
+		   data[0x39] == '1' &&
+		   data[0x3A] == '6') ) {
+		return 1;
+	}
+
+/********************************************************/
+/* Fill valuable global variables						*/
+/*														*/
+/* bytes per sector:			2 bytes	at offset 0x0B	*/
+/* sectors per cluster:			1 byte	at offset 0x0D	*/
+/* number of reserved sectors:	2 bytes	at offset 0x0E	*/
+/* number of FATs:				1 byte	at offset 0x10	*/
+/* max directory entries:		2 bytes	at offset 0x11	*/
+/* number of sectors per FAT:	2 bytes	at offset 0x16	*/
+/* total sectors:				4 bytes	at offset 0x20	*/
+/********************************************************/
+	bytes_per_sector = data[0x0B] | (data[0x0C] << 8);
+	sectors_per_cluster = data[0x0D];
+	bytes_per_cluster = bytes_per_sector * sectors_per_cluster;
+	reserved_sectors = data[0x0E] | (data[0x0F] << 8);
+	number_of_fats = data[0x10];
+	dir_table_size = (data[0x11] | (data[0x12] << 8)) * 32;
+	sectors_per_fat = data[0x16] | (data[0x17] << 8);
+	total_sectors = data[20] | ((uint32_t)data[21] << 8) |
+		((uint32_t)data[22] << 16) | ((uint32_t)data[23] << 24);
+	
+// Only compatible with sectors of 512 bytes
+	if (bytes_per_sector != 512) return 2;
+	
+/* Get location of FAT */
+	fat_size = (uint32_t)bytes_per_sector * (uint32_t)sectors_per_fat;
+	fat_offset = (uint32_t)reserved_sectors * (uint32_t)bytes_per_sector +
+				 boot_offset;
+	
+// Get location of directory table
+	dir_table_offset = (uint32_t)bytes_per_sector *
+						(uint32_t)reserved_sectors +
+						512 * (uint32_t)sectors_per_fat *
+		(uint32_t)number_of_fats +
+		boot_offset;
+	
+// Get location of first cluster to be used by file data
+	file_cluster_offset = dir_table_offset + dir_table_size;
+
+	return 0;
+}
 
 /*----------------------------------------------------------------------------*/
 /* Scan through directory table for highest file number suffix and return the */
 /* next highest number														  */
 /*----------------------------------------------------------------------------*/
-//uint16_t get_file_num(uint8_t *data) {
-//	uint16_t max = 0;			// Highest file number suffix
-//	uint16_t tmp16, x;			// Temporary storage
-//	uint32_t i, j;
-//
-//	i = 0;						// Directory table byte count
-//	j = 0;						// Directory table entry address
-//
-//	do {
-//// Check for end of sector
-//		if (i % bytes_per_sector == 0) {
-//// Read next sector
-//			if (read_block(dir_table_offset + i)) return 1;
-//			j = 0;
-//		}
-//		if (data[j] != 0xE5) {	// 0xE5 marks a deleted file
-///* Convert 3 byte ASCII file number suffix to integer */
-//
-//// First digit
-//			tmp16 = data[j+4] - 0x30;
-//			if (tmp16 > 9) {
-//				i += 32;		// Update byte counter
-//// Address of next directory table entry
-//				j = i % bytes_per_sector;
-//				continue;
-//			}
-//
-//			x = tmp16 * 100;
-//
-//// Second digit
-//			tmp16 = data[j+5] - 0x30;
-//			if (tmp16 > 9) {
-//				i += 32;		// Update byte counter
-//// Address of next directory table entry
-//				j = i % bytes_per_sector;
-//				continue;
-//			}
-//
-//			x += tmp16 * 10;
-//
-//// Third digit
-//			tmp16 = data[j+6] - 0x30;
-//			if (tmp16 > 9) {
-//				i += 32;		// Update byte counter
-//// Address of next directory table entry
-//				j = i % bytes_per_sector;
-//				continue;
-//			}
-//
-//			x += tmp16;
-//
-//// Keep track of highest file number suffix
-//			if (x > max) max = x;
-//		}
-//// Update byte counter
-//		i += 32;
-//// Address of next directory table entry
-//		j = i % bytes_per_sector;
-//// 0x00 marks the end of directory table entries
-//	} while (i < dir_table_size && data[j] != 0x00);
-//
-//// Return the highest usable file number suffix
-//	return (max + 1);
-//}
+uint16_t get_file_num(uint8_t *data) {
+	uint16_t max = 0;			// Highest file number suffix
+	uint16_t tmp16, x;			// Temporary storage
+	uint32_t i, j;
+
+	i = 0;						// Directory table byte count
+	j = 0;						// Directory table entry address
+
+	do {
+// Check for end of sector
+		if (i % bytes_per_sector == 0) {
+// Read next sector
+			if (read_block(data, dir_table_offset + i)) return 1;
+			j = 0;
+		}
+		if (data[j] != 0xE5) {	// 0xE5 marks a deleted file
+/* Convert 3 byte ASCII file number suffix to integer */
+
+// First digit
+			tmp16 = data[j+4] - 0x30;
+			if (tmp16 > 9) {
+				i += 32;		// Update byte counter
+// Address of next directory table entry
+				j = i % bytes_per_sector;
+				continue;
+			}
+
+			x = tmp16 * 100;
+
+// Second digit
+			tmp16 = data[j+5] - 0x30;
+			if (tmp16 > 9) {
+				i += 32;		// Update byte counter
+// Address of next directory table entry
+				j = i % bytes_per_sector;
+				continue;
+			}
+
+			x += tmp16 * 10;
+
+// Third digit
+			tmp16 = data[j+6] - 0x30;
+			if (tmp16 > 9) {
+				i += 32;		// Update byte counter
+// Address of next directory table entry
+				j = i % bytes_per_sector;
+				continue;
+			}
+
+			x += tmp16;
+
+// Keep track of highest file number suffix
+			if (x > max) max = x;
+		}
+// Update byte counter
+		i += 32;
+// Address of next directory table entry
+		j = i % bytes_per_sector;
+// 0x00 marks the end of directory table entries
+	} while (i < dir_table_size && data[j] != 0x00);
+
+// Return the highest usable file number suffix
+	return (max + 1);
+}
 
 /*----------------------------------------------------------------------------*/
 /* Format the SD card to FAT16 (quick format)								  */
@@ -634,7 +639,7 @@ uint8_t read_block(uint8_t *data, uint32_t offset) {
 //
 //// Fill with null bytes from offset 0h to 3F000h (not including 3F000h)
 //	for (j = 0; j < 0x3F000; j += 512) {
-//		write_block(j, 512);
+//		write_block(data, j, 512);
 //		if (j % 2048 == 0) {
 //			LED1_TOGGLE();			// Flash LED to signal formatting
 //		}
@@ -696,7 +701,7 @@ uint8_t read_block(uint8_t *data, uint32_t offset) {
 //		data[i] = tmp[i];
 //	}
 //// Write to boot sector
-//	write_block(0, 512);
+//	write_block(data, 0, 512);
 //
 //// Set bytes for FAT 
 //	data[0] = 0xF8;
@@ -707,9 +712,9 @@ uint8_t read_block(uint8_t *data, uint32_t offset) {
 //		data[i] = 0x00;
 //	}
 //// Write to first FAT 
-//	write_block(0x400, 512);
+//	write_block(data, 0x400, 512);
 //// Write to second FAT 
-//	write_block(0x1DA00, 512);
+//	write_block(data, 0x1DA00, 512);
 //
 //	LED1_OFF();
 //}
