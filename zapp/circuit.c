@@ -19,7 +19,7 @@ void mcu_pin_config(void) {
 	P1DIR |= BIT3;		// output: LED1
 // output: LDO regulators
 	P6DIR |= SD_PWR | ACCEL_PWR | GYRO_PWR;
-	P6SEL |= BIT3;		// Select ADC on P6.3 (technically not GPIO)
+	P6SEL |= BIT3;		// Select ADC on P6.3
 }
 
 /*----------------------------------------------------------------------------*/

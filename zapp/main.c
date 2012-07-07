@@ -229,10 +229,10 @@ uint8_t start_logging(void) {
 	uint16_t voltage;				// Keep track of battery voltage
 
 /* Check for low voltage */
-	voltage = adc_read();
-	if (voltage < VOLTAGE_THRSHLD) {
-		return 1;					// Voltage is too low 
-	}
+//	voltage = adc_read();
+//	if (voltage < VOLTAGE_THRSHLD) {
+//		return 1;					// Voltage is too low 
+//	}
 
 	uint16_t flash_counter;			// Used for timing LED flashes
 
@@ -297,6 +297,8 @@ returns 0, the disk is full */
 // Update total bytes in file
 			total_bytes += 512;
 
+			FEED_WATCHDOG;
+
 /* Flash LED every 10 block writes */
 			flash_counter++;
 			if (flash_counter == 10) {
@@ -305,10 +307,10 @@ returns 0, the disk is full */
 			}
 
 /* Check for low voltage */
-			voltage = adc_read();
-			if (voltage < VOLTAGE_THRSHLD) {
-				stop_flag = 1;		// Set stop flag high
-			}
+//			voltage = adc_read();
+//			if (voltage < VOLTAGE_THRSHLD) {
+//				stop_flag = 1;		// Set stop flag high
+//			}
 
 			FEED_WATCHDOG;
 		}							// Finished data for a cluster
@@ -473,10 +475,9 @@ uint8_t wait_for_ctrl(void) {
 /*----------------------------------------------------------------------------*/
 #pragma vector = TIMER0_A0_VECTOR
 __interrupt void CCR0_ISR(void) {
-	TA0CCTL0 &= ~(CCIFG);		// Clear interrupt flag
 
 // Take in simulated new sample data
-	new_sample++;				// Simulate new sample data
+	new_sample = (uint8_t)adc_read();
 	data_mic[byte_num] = new_sample;
 	byte_num++;					// Increment sample counter
 
@@ -494,6 +495,8 @@ __interrupt void CCR0_ISR(void) {
 //		LED1_TOGGLE();
 //		new_sample = 0;
 //	}
+
+	TA0CCTL0 &= ~(CCIFG);		// Clear interrupt flag
 }
 
 /*----------------------------------------------------------------------------*/

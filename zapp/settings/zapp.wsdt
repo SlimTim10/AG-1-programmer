@@ -23,6 +23,10 @@
         </ColumnWidths>
       </Workspace>
       <TerminalIO/>
+      <Debug-Log>
+        <ColumnWidth0>20</ColumnWidth0>
+        <ColumnWidth1>1862</ColumnWidth1>
+      </Debug-Log>
     </Static>
     <Windows>
       <Wnd0>
@@ -33,8 +37,14 @@
             <Factory>Build</Factory>
             <Session/>
           </Tab>
+          <Tab>
+            <Identity>TabID-5986-15158</Identity>
+            <TabName>Debug Log</TabName>
+            <Factory>Debug-Log</Factory>
+            <Session/>
+          </Tab>
         </Tabs>
-        <SelectedTab>0</SelectedTab>
+        <SelectedTab>1</SelectedTab>
       </Wnd0>
       <Wnd1>
         <Tabs>
@@ -58,14 +68,30 @@
           <Factory>TextEditor</Factory>
           <Filename>$WS_DIR$\main.c</Filename>
           <XPos>0</XPos>
-          <YPos>287</YPos>
-          <SelStart>8281</SelStart>
-          <SelEnd>8281</SelEnd>
+          <YPos>458</YPos>
+          <SelStart>13376</SelStart>
+          <SelEnd>13376</SelEnd>
         </Tab>
         <ActiveTab>0</ActiveTab>
         <Tab>
           <Factory>TextEditor</Factory>
           <Filename>$WS_DIR$\msp430f5310_extra.c</Filename>
+          <XPos>0</XPos>
+          <YPos>55</YPos>
+          <SelStart>3308</SelStart>
+          <SelEnd>3308</SelEnd>
+        </Tab>
+        <Tab>
+          <Factory>TextEditor</Factory>
+          <Filename>$WS_DIR$\sdfat.c</Filename>
+          <XPos>0</XPos>
+          <YPos>260</YPos>
+          <SelStart>2306</SelStart>
+          <SelEnd>2306</SelEnd>
+        </Tab>
+        <Tab>
+          <Factory>TextEditor</Factory>
+          <Filename>$WS_DIR$\sdfat.h</Filename>
           <XPos>0</XPos>
           <YPos>0</YPos>
           <SelStart>0</SelStart>
@@ -73,15 +99,23 @@
         </Tab>
         <Tab>
           <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\sdfat.c</Filename>
+          <Filename>$WS_DIR$\circuit.c</Filename>
           <XPos>0</XPos>
-          <YPos>35</YPos>
-          <SelStart>2306</SelStart>
-          <SelEnd>2306</SelEnd>
+          <YPos>33</YPos>
+          <SelStart>911</SelStart>
+          <SelEnd>911</SelEnd>
         </Tab>
         <Tab>
           <Factory>TextEditor</Factory>
-          <Filename>$WS_DIR$\sdfat.h</Filename>
+          <Filename>$WS_DIR$\circuit.h</Filename>
+          <XPos>0</XPos>
+          <YPos>0</YPos>
+          <SelStart>0</SelStart>
+          <SelEnd>0</SelEnd>
+        </Tab>
+        <Tab>
+          <Factory>TextEditor</Factory>
+          <Filename>$WS_DIR$\msp430f5310_extra.h</Filename>
           <XPos>0</XPos>
           <YPos>0</YPos>
           <SelStart>0</SelStart>
@@ -136,6 +170,84 @@
         <Row10>
           <Sizes/>
         </Row10>
+        <Row11>
+          <Sizes/>
+        </Row11>
+        <Row12>
+          <Sizes/>
+        </Row12>
+        <Row13>
+          <Sizes/>
+        </Row13>
+        <Row14>
+          <Sizes/>
+        </Row14>
+        <Row15>
+          <Sizes/>
+        </Row15>
+        <Row16>
+          <Sizes/>
+        </Row16>
+        <Row17>
+          <Sizes/>
+        </Row17>
+        <Row18>
+          <Sizes/>
+        </Row18>
+        <Row19>
+          <Sizes/>
+        </Row19>
+        <Row20>
+          <Sizes/>
+        </Row20>
+        <Row21>
+          <Sizes/>
+        </Row21>
+        <Row22>
+          <Sizes/>
+        </Row22>
+        <Row23>
+          <Sizes/>
+        </Row23>
+        <Row24>
+          <Sizes/>
+        </Row24>
+        <Row25>
+          <Sizes/>
+        </Row25>
+        <Row26>
+          <Sizes/>
+        </Row26>
+        <Row27>
+          <Sizes/>
+        </Row27>
+        <Row28>
+          <Sizes/>
+        </Row28>
+        <Row29>
+          <Sizes/>
+        </Row29>
+        <Row30>
+          <Sizes/>
+        </Row30>
+        <Row31>
+          <Sizes/>
+        </Row31>
+        <Row32>
+          <Sizes/>
+        </Row32>
+        <Row33>
+          <Sizes/>
+        </Row33>
+        <Row34>
+          <Sizes/>
+        </Row34>
+        <Row35>
+          <Sizes/>
+        </Row35>
+        <Row36>
+          <Sizes/>
+        </Row36>
       </Top>
       <Left>
         <Row0>
