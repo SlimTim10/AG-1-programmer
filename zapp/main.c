@@ -258,7 +258,7 @@ uint8_t start_logging(void) {
 	dump_data = 0;
 
 	interrupt_config();				// Configure interrupts
-	enable_interrupts();			// Enable interrupts (for CTRL button)
+	enable_interrupts();			// Enable interrupts
 
 	FEED_WATCHDOG;
 
@@ -277,6 +277,8 @@ returns 0, the disk is full */
 // cluster_num becomes 0 when the disk is full
 // View break statements at end of loop
 	while (cluster_num > 0) {
+		timer_int_en();			// Enable Timer A interrupt
+
 // Update current cluster offset
 		cluster_offset = get_cluster_offset(cluster_num);
 
@@ -314,6 +316,8 @@ returns 0, the disk is full */
 
 			FEED_WATCHDOG;
 		}							// Finished data for a cluster
+
+		timer_int_dis();			// Disable Timer A interrupt
 
 // If the signal to stop was given then do not modify the FAT (the chain end
 //bytes are already written)
@@ -477,7 +481,7 @@ uint8_t wait_for_ctrl(void) {
 __interrupt void CCR0_ISR(void) {
 
 // Take in simulated new sample data
-	new_sample = (uint8_t)adc_read();
+	new_sample = (uint8_t)(adc_read() / 4);
 	data_mic[byte_num] = new_sample;
 	byte_num++;					// Increment sample counter
 

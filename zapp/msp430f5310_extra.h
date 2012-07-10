@@ -19,5 +19,7 @@ void rtc_restart(void);
 uint8_t rtc_rdy(void);
 void enable_interrupts(void);
 void timer_config(void);
+void timer_int_en(void);
+void timer_int_dis(void);
 
 #endif

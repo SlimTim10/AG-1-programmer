@@ -135,4 +135,18 @@ void timer_config(void) {
 	TA0CTL = TASSEL_2 | ID_0 | MC_1 | TACLR;
 }
 
+/*----------------------------------------------------------------------------*/
+/* Enable interrupt for Timer A												  */
+/*----------------------------------------------------------------------------*/
+void timer_int_en(void) {
+	TA0CCTL0 = CCIE;			// Enable interrupt
+}
+
+/*----------------------------------------------------------------------------*/
+/* Disable interrupt for Timer A												  */
+/*----------------------------------------------------------------------------*/
+void timer_int_dis(void) {
+	TA0CCTL0 &= (~CCIE);		// Disable interrupt
+}
+
 #endif
