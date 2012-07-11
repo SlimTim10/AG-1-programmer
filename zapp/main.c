@@ -481,7 +481,7 @@ uint8_t wait_for_ctrl(void) {
 __interrupt void CCR0_ISR(void) {
 
 // Take in simulated new sample data
-	new_sample = (uint8_t)(adc_read() / 4);
+	new_sample = (uint8_t)(adc_read() >> 2);
 	data_mic[byte_num] = new_sample;
 	byte_num++;					// Increment sample counter
 
@@ -495,9 +495,9 @@ __interrupt void CCR0_ISR(void) {
 	}
 
 /* DEBUG: Check the clock speed */
-//	if (new_sample == 183) {
+//	if (byte_num == 8000) {
 //		LED1_TOGGLE();
-//		new_sample = 0;
+//		byte_num = 0;
 //	}
 
 	TA0CCTL0 &= ~(CCIFG);		// Clear interrupt flag

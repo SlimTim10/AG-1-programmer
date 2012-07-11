@@ -59,7 +59,8 @@ void adc_config(void) {
 	REFCTL0 = REFMSTR | REFVSEL_3 | REFTCOFF | REFON;
 	ADC10CTL0 &= ~ADC10ENC;						// Disable ADC
 	ADC10CTL0 = ADC10SHT_15 | ADC10ON;			// 1024 clock cycles, ADC on
-	ADC10MCTL0 = ADC10SREF_1 | ADC10INCH_3;		// VR+ = VREF+ and VR- = AVSS
+// VR+ = VREF+ and VR- = AVSS, input channel A3
+	ADC10MCTL0 = ADC10SREF_1 | ADC10INCH_3;
 // CLK/1, MODCLK source, single-channel
 	ADC10CTL1 = ADC10SHP | ADC10DIV_0 | ADC10SSEL_0 | ADC10CONSEQ_0;
 	ADC10CTL2 = ADC10RES;						// 10 bit resolution
@@ -70,14 +71,13 @@ void adc_config(void) {
 
 /*----------------------------------------------------------------------------*/
 /* Read and return voltage with ADC (10 bit)								  */
+/* Actual voltage = (ADC10MEM0 / 1024) * 2.5								  */
 /*----------------------------------------------------------------------------*/
 uint16_t adc_read(void) {
-// Actual voltage = (ADC10MEM0 / 1024) * 2.5 * 2
-// Half voltage due to resistor divider
 	ADC10IFG = 0x0000;							// Clear interrupt flags
-	ADC10CTL0 &= ~ADC10ENC;						// Disable ADC
-	ADC10CTL0 |= ADC10ENC | ADC10SC;			// Enable and read once
-	while (!(ADC10IFG & ADC10IFG0));			// Wait for ready flag
+	while (ADC10CTL1 & ADC10BUSY);				// Wait until ADC is not busy
+	ADC10CTL0 |= ADC10SC;						// Trigger conversion
+	//while (!(ADC10IFG & ADC10IFG0));			// Wait for ready flag
 	return ADC10MEM0;
 }
 
@@ -143,7 +143,7 @@ void timer_int_en(void) {
 }
 
 /*----------------------------------------------------------------------------*/
-/* Disable interrupt for Timer A												  */
+/* Disable interrupt for Timer A											  */
 /*----------------------------------------------------------------------------*/
 void timer_int_dis(void) {
 	TA0CCTL0 &= (~CCIE);		// Disable interrupt
