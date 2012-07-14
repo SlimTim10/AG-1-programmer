@@ -234,7 +234,7 @@ uint8_t start_logging(void) {
 //		return 1;					// Voltage is too low 
 //	}
 
-	uint16_t flash_counter;			// Used for timing LED flashes
+	uint8_t flash_counter;			// Used for timing LED flashes
 
 /* File tracking variables */
 	uint16_t file_num;				// File name number suffix
@@ -301,9 +301,9 @@ returns 0, the disk is full */
 
 			FEED_WATCHDOG;
 
-/* Flash LED every 10 block writes */
+/* Toggle LED every 31 block writes (~2 s @ 8 kHz) */
 			flash_counter++;
-			if (flash_counter == 10) {
+			if (flash_counter == 31) {
 				LED1_TOGGLE();
 				flash_counter = 0;
 			}
@@ -480,8 +480,11 @@ uint8_t wait_for_ctrl(void) {
 #pragma vector = TIMER0_A0_VECTOR
 __interrupt void CCR0_ISR(void) {
 
-// Take in simulated new sample data
-	new_sample = (uint8_t)(adc_read() >> 2);
+// Get new sample data
+// 10-bit resolution
+	//new_sample = (uint8_t)(adc_read() >> 2);
+// 8-bit resolution
+	new_sample = (uint8_t)(adc_read());
 	data_mic[byte_num] = new_sample;
 	byte_num++;					// Increment sample counter
 
