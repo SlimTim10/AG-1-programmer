@@ -1,5 +1,7 @@
 /**
  * Written by Tim Johns.
+ * 
+ * Circuit-specific definitions and functions library.
  */
 
 #ifndef _CIRCUITLIB_H

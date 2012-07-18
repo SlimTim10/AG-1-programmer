@@ -786,7 +786,7 @@
         </option>
         <option>
           <name>ExtraOutputFile</name>
-          <state>bender_2.0.a43</state>
+          <state>zapp.a43</state>
         </option>
         <option>
           <name>ExtraOutputFormat</name>
@@ -1798,6 +1798,12 @@
   </file>
   <file>
     <name>$PROJ_DIR$\spi.h</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$\wave.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$\wave.h</name>
   </file>
 </project>
 

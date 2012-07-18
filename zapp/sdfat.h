@@ -1,5 +1,7 @@
 /**
  * Written by Tim Johns.
+ * 
+ * SD card SPI interface and FAT16 implementation library.
  *
  * Remember to change the CS_LOW_SD() and CS_HIGH_SD() definitions for a new
  * circuit design.
@@ -33,6 +35,24 @@
 #define CS_LOW_SD()  P4OUT &= ~(0x80)		// Card Select (P4.7)
 #define CS_HIGH_SD() P4OUT |= 0x80			// Card Deselect (P4.7)
 
+struct fatstruct {					// FAT information based on boot sector
+	uint16_t nbytesinsect;			// Number of bytes per sector, should be 512
+	uint8_t nsectsinclust;			// Number of sectors per cluster
+	uint32_t nbytesinclust;			// bytes per sector * sectors per cluster
+	uint16_t nressects;				// Number of reserved sectors from offset 0
+	uint16_t nsectsinfat;			// Number of sectors per FAT 
+	uint8_t nfats;					// Number of FATs
+	uint32_t fatsize;				// Number of bytes per FAT 
+	uint32_t fatoffset;				// Offset of the first FAT 
+	uint32_t dtoffset;				// Offset of the directory table
+	uint32_t dtsize;				// Size of directory table in bytes
+	uint32_t nsects;				// Number of sectors in the partition
+	uint32_t fileclustoffset;		// Offset of the first cluster for file data
+	uint32_t nhidsects;				// Number of hidden sectors
+// Offset of the boot record sector, determined by number of hidden sectors
+	uint32_t bootoffset;
+};
+
 uint8_t init_sd(void);
 void go_idle_sd(void);
 uint8_t send_cmd_sd(uint8_t cmd, uint32_t arg);
@@ -40,15 +60,15 @@ uint8_t send_acmd_sd(uint8_t acmd, uint32_t arg);
 //uint8_t write_multiple_block(uint32_t start_offset);
 uint8_t write_block(uint8_t *data, uint32_t offset, uint16_t count);
 uint8_t read_block(uint8_t *data, uint32_t offset);
-uint16_t find_cluster(uint8_t *data);
-uint32_t get_cluster_offset(uint16_t clust);
-uint8_t valid_block(uint8_t block);
-uint8_t update_fat(uint8_t *data, uint16_t index, uint16_t num);
-uint8_t update_dir_table(	uint8_t *data, uint16_t cluster,
-							uint32_t file_size, uint16_t file_num);
-uint8_t read_boot_sector(uint8_t *data);
-uint8_t parse_boot_sector(uint8_t *data);
-uint16_t get_file_num(uint8_t *data);
+uint16_t find_cluster(uint8_t *data, struct fatstruct *);
+uint32_t get_cluster_offset(uint16_t clust, struct fatstruct *);
+uint8_t valid_block(uint8_t block, struct fatstruct *);
+uint8_t update_fat(uint8_t *data, struct fatstruct *, uint16_t, uint16_t);
+uint8_t update_dir_table(	uint8_t *data, struct fatstruct *,
+							uint16_t, uint32_t, uint16_t);
+uint8_t read_boot_sector(uint8_t *data, struct fatstruct *);
+uint8_t parse_boot_sector(uint8_t *data, struct fatstruct *);
+uint16_t get_file_num(uint8_t *data, struct fatstruct *);
 //void format_sd(uint8_t *data);
 
 #endif

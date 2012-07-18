@@ -1,6 +1,7 @@
 /**
  * Written by Tim Johns.
  *
+ * Circuit-specific functions.
  * The function bodies in this file are specific to the current circuit design.
  */
 

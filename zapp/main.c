@@ -14,6 +14,7 @@
 #include "sdfat.h"
 #include "msp430f5310_extra.h"
 #include "circuit.h"
+#include "wave.h"
 
 #define BUFF_SIZE		512		// Size of data buffers
 
@@ -58,6 +59,8 @@ uint8_t wait_for_ctrl(void);
 	uint16_t byte_num;
 // Flag to write data to SD card when buffer is full
 	uint8_t dump_data;
+
+	struct fatstruct fatinfo;
 
 	uint8_t logging;				// Set to 1 to signal device is logging
 	uint8_t stop_flag;				// Set to 1 to signal stop logging
@@ -172,7 +175,7 @@ idle_state:
 		FEED_WATCHDOG;
 
 // Find and read the FAT16 boot sector
-		if (read_boot_sector(data_sd)) {
+		if (read_boot_sector(data_sd, &fatinfo)) {
 			LED1_ON();
 			HANG();
 		}
@@ -180,7 +183,7 @@ idle_state:
 		FEED_WATCHDOG;
 
 // Parse the FAT16 boot sector
-		if (parse_boot_sector(data_sd)) {
+		if (parse_boot_sector(data_sd, &fatinfo)) {
 			LED1_PANIC();		// Flash LED to show "panic"
 			goto idle_state;	// Go back to idle state
 		}
@@ -237,13 +240,18 @@ uint8_t start_logging(void) {
 	uint8_t flash_counter;			// Used for timing LED flashes
 
 /* File tracking variables */
-	uint16_t file_num;				// File name number suffix
-	uint16_t start_cluster;			// The current file's starting cluster
-	uint8_t block_num;				// Current block number
-	uint32_t block_offset;			// Offset of each block to write
-	uint16_t cluster_num;			// Current cluster number
-	uint32_t cluster_offset;		// Offset of current cluster
-	uint32_t total_bytes;			// Total bytes in file
+	uint16_t	file_num;			// File name number suffix
+	uint16_t	start_cluster;		// The current file's starting cluster
+	uint8_t		block_num;			// Current block number
+	uint32_t	block_offset;		// Offset of each block to write
+	uint16_t	cluster_num;		// Current cluster number
+	uint32_t	cluster_offset;		// Offset of current cluster
+	uint32_t	total_bytes;		// Total bytes in file
+
+/* WAVE header variables */
+	struct ckriff	riff;			// RIFF chunk
+	struct ckfmt	fmt;			// Format chunk
+	struct ck		dat;			// Data chunk (info only--not actual data)
 
 /* Temporary storage variables */
 //	uint8_t tmp8;
@@ -257,33 +265,70 @@ uint8_t start_logging(void) {
 	byte_num = 0;
 	dump_data = 0;
 
-	interrupt_config();				// Configure interrupts
-	enable_interrupts();			// Enable interrupts
-
 	FEED_WATCHDOG;
 
 /* Find first free cluster (start search at cluster 2).  If find_cluster
 returns 0, the disk is full */
-	if ((start_cluster = find_cluster(data_sd)) == 0) return 2;
+	if ((start_cluster = find_cluster(data_sd, &fatinfo)) == 0) return 2;
+
+	FEED_WATCHDOG;
 
 /* Initialize loop variables */
 	flash_counter = 0;
 	block_num = 0;
 	cluster_num = start_cluster;
-	total_bytes = 0;
+	total_bytes = sizeof(riff) + sizeof(fmt) + sizeof(dat);
+
+/* Set WAVE header information */
+	riff.info.ckid[0] = 'R';		// Chunk ID: "RIFF"
+	riff.info.ckid[1] = 'I';
+	riff.info.ckid[2] = 'F';
+	riff.info.ckid[3] = 'F';
+// Chunk size
+	riff.info.cksize = total_bytes - sizeof(riff.info);
+	riff.format[0] = 'W';			// RIFF format: "WAVE"
+	riff.format[1] = 'A';
+	riff.format[2] = 'V';
+	riff.format[3] = 'E';
+	fmt.info.ckid[0] = 'f';			// Chunk ID: "fmt"
+	fmt.info.ckid[1] = 'm';
+	fmt.info.ckid[2] = 't';
+	fmt.info.ckid[3] = ' ';
+	fmt.info.cksize = 16;			// Chunk size: 16
+	fmt.format = WAVE_FORMAT_PCM;	// Audio format: PCM
+	fmt.nchannels = 1;				// Channels: 1 (Mono)
+	fmt.nsamplerate = 8000;			// 8 kHz sample rate
+	fmt.bits = 8;					// 8 bits per sample
+// Block alignment
+	fmt.nblockalign = fmt.nchannels * (fmt.bits / 8);
+// Average data-transfer rate
+	fmt.navgrate = fmt.nsamplerate * fmt.nblockalign;
+	dat.ckid[0] = 'd';				// Chunk ID: "data"
+	dat.ckid[1] = 'a';
+	dat.ckid[2] = 't';
+	dat.ckid[3] = 'a';
+// Chunk size
+	dat.cksize = total_bytes - (sizeof(riff) + sizeof(fmt) + sizeof(dat));
+
+// Write WAVE header in data buffer
+	write_header(data_mic, &riff, &fmt, &dat);
+	byte_num = total_bytes;			// Increase byte counter
+
+	interrupt_config();				// Configure interrupts
+	enable_interrupts();			// Enable interrupts
 
 	timer_config();					// Set up Timer0_A5
 
 // cluster_num becomes 0 when the disk is full
 // View break statements at end of loop
 	while (cluster_num > 0) {
-		timer_int_en();			// Enable Timer A interrupt
+		timer_int_en();				// Enable Timer A interrupt
 
 // Update current cluster offset
-		cluster_offset = get_cluster_offset(cluster_num);
+		cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
 
 // Loop while block number is valid (not end of cluster) and stop flag is low
-		while (valid_block(block_num) && stop_flag == 0) {
+		while (valid_block(block_num, &fatinfo) && stop_flag == 0) {
 
 // Wait for data buffer to fill during timer interrupt
 			while (!dump_data && stop_flag == 0) {
@@ -325,10 +370,10 @@ returns 0, the disk is full */
 
 // Find next free cluster to continue logging data or stop logging if the max
 //file size has been met
-		if ((tmp16 = find_cluster(data_sd)) == 0) break;
+		if ((tmp16 = find_cluster(data_sd, &fatinfo)) == 0) break;
 
 // Update FAT (point used cluster to next free cluster)
-		if (update_fat(data_sd, cluster_num * 2, tmp16)) return 1;
+		if (update_fat(data_sd, &fatinfo, cluster_num * 2, tmp16)) return 1;
 
 		cluster_num = tmp16;		// Next cluster
 		block_num = 0;				// Reset block number
@@ -336,16 +381,34 @@ returns 0, the disk is full */
 		FEED_WATCHDOG;
 	}								// End of logging loop
 
-// Get appropriate number for file name suffix
-	file_num = get_file_num(data_sd);
+	__disable_interrupt();			// Disable interrupts
+
+
+/* Updating file's WAVE header */
+// Update RIFF chunk size
+	riff.info.cksize = total_bytes - sizeof(riff.info);
+// Update data chunk size
+	dat.cksize = total_bytes - (sizeof(riff) + sizeof(fmt) + sizeof(dat));
+// First block of file data
+	block_offset = get_cluster_offset(start_cluster, &fatinfo);
+// Read block
+	read_block(data_sd, block_offset);
+// Update WAVE header in data buffer
+	write_header(data_sd, &riff, &fmt, &dat);
+// Write block
+	write_block(data_sd, block_offset, 512);
 
 	FEED_WATCHDOG;
 
+/* Updating directory table */
+// Get appropriate number for file name suffix
+	file_num = get_file_num(data_sd, &fatinfo);
+	FEED_WATCHDOG;
 // Update the directory table
-	if (update_dir_table(data_sd, start_cluster, total_bytes, file_num))
+	if (update_dir_table(	data_sd, &fatinfo,
+							start_cluster, total_bytes, file_num))
 		return 1;
 
-	__disable_interrupt();			// Disable interrupts
 	logging = 0;					// Device is not logging
 
 	return 0;

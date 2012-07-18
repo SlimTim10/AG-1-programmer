@@ -1,7 +1,7 @@
 /**
  * Written by Tim Johns.
  *
- * Interfacing with a SD card with FAT16 implementation.
+ * SD card SPI interface and FAT16 implementation.
  *
  * In the current circuit design, the SD card is using the USCI_A1 SPI bus, thus
  * the functions spia_send() and spia_rec() are used.
@@ -41,23 +41,6 @@
 /*----------------------------------------------------------------------------*/
 /* Global variables in the scope of this file								  */
 /*----------------------------------------------------------------------------*/
-	uint16_t bytes_per_sector;		// Number of bytes per sector, should be 512
-	uint8_t sectors_per_cluster;	// Number of sectors per cluster
-	uint32_t bytes_per_cluster;		// bytes per sector * sectors per cluster
-	uint16_t reserved_sectors;		// Number of reserved sectors from offset 0
-	uint16_t sectors_per_fat;		// Number of sectors per FAT 
-	uint8_t number_of_fats;			// Number of FATs
-	uint32_t fat_size;				// Number of bytes per FAT 
-	uint32_t fat_offset;			// Offset of the first FAT 
-	uint32_t dir_table_offset;		// Offset of the directory table
-	uint32_t dir_table_size;		// Size of directory table in bytes
-	uint32_t total_sectors;			// Number of sectors in the partition
-	uint32_t file_cluster_offset;	// Offset of the first cluster for file data
-
-	uint32_t hidden_sectors;		// Number of hidden sectors
-// Offset of the boot record sector, determined by number of hidden sectors
-	uint32_t boot_offset;
-
 // Directory table entry (MUST BE 32 BYTES)
 	uint8_t dte[] = "DATA000 WAV\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
@@ -327,16 +310,16 @@ uint8_t read_block(uint8_t *data, uint32_t offset) {
 /* Return free cluster index (>0).											  */
 /* Return 0 on error or if there are no more free clusters.					  */
 /*----------------------------------------------------------------------------*/
-uint16_t find_cluster(uint8_t *data) {
+uint16_t find_cluster(uint8_t *data, struct fatstruct *info) {
 	uint32_t block_offset = 0;
 	uint16_t i, j;
 
-	for (i = 0; i < fat_size; i += 2) {
+	for (i = 0; i < info->fatsize; i += 2) {
 		j = i % 512;			// Cluster index relative to block
 				
 /* Read each new block of the FAT */
 		if (j == 0) {
-			block_offset = fat_offset + i;
+			block_offset = info->fatoffset + i;
 			if (read_block(data, block_offset)) return 0;
 		}
 		
@@ -351,8 +334,8 @@ uint16_t find_cluster(uint8_t *data) {
 			if (write_block(data, block_offset, 512)) return 0;
 
 // Write to second FAT 
-			if (number_of_fats > 1) {
-				if (write_block(data, block_offset + fat_size, 512)) return 0;
+			if (info->nfats > 1) {
+				if (write_block(data, block_offset + info->fatsize, 512)) return 0;
 			}
 
 // Return free cluster index
@@ -367,23 +350,24 @@ uint16_t find_cluster(uint8_t *data) {
 /*----------------------------------------------------------------------------*/
 /* Return the offset of the given cluster number							  */
 /*----------------------------------------------------------------------------*/
-uint32_t get_cluster_offset(uint16_t clust) {
-	return file_cluster_offset + ((clust - 2) * bytes_per_cluster);
+uint32_t get_cluster_offset(uint16_t clust, struct fatstruct *info) {
+	return info->fileclustoffset + ((clust - 2) * info->nbytesinclust);
 }
 
 /*----------------------------------------------------------------------------*/
-/* Return true iff block number is less than sectors_per_cluster			  */
+/* Return true iff block number is less than nsectsinclust					  */
 /*----------------------------------------------------------------------------*/
-uint8_t valid_block(uint8_t block) {
-	return block < sectors_per_cluster;
+uint8_t valid_block(uint8_t block, struct fatstruct *info) {
+	return block < info->nsectsinclust;
 }
 
 /*----------------------------------------------------------------------------*/
 /* Update the FAT															  */
 /* Replace the cluster word at index with num.								  */
 /*----------------------------------------------------------------------------*/
-uint8_t update_fat(uint8_t *data, uint16_t index, uint16_t num) {
-	uint32_t block_offset = fat_offset + index - (index % 512);
+uint8_t update_fat(	uint8_t *data, struct fatstruct *info,
+					uint16_t index, uint16_t num) {
+	uint32_t block_offset = info->fatoffset + index - (index % 512);
 	
 // Read the right block of the FAT 
 	if (read_block(data, block_offset)) return 1;
@@ -398,8 +382,8 @@ uint8_t update_fat(uint8_t *data, uint16_t index, uint16_t num) {
 	if (write_block(data, block_offset, 512)) return 1;
 
 // Write to second FAT 
-	if (number_of_fats > 1) {
-		if (write_block(data, block_offset + fat_size, 512)) return 1;
+	if (info->nfats > 1) {
+		if (write_block(data, block_offset + info->fatsize, 512)) return 1;
 	}
 
 	return 0;
@@ -412,6 +396,7 @@ uint8_t update_fat(uint8_t *data, uint16_t index, uint16_t num) {
 /* file_num: file name number suffix										  */
 /*----------------------------------------------------------------------------*/
 uint8_t update_dir_table(	uint8_t *data,
+							struct fatstruct *info,
 							uint16_t cluster,
 							uint32_t file_size,
 							uint16_t file_num) {
@@ -420,10 +405,10 @@ uint8_t update_dir_table(	uint8_t *data,
 /* Find the last entry and prepare the next directory table entry.		  */
 /*------------------------------------------------------------------------*/
 	uint32_t i, j;
-	for (i = 0, j = 0; i < dir_table_size; i += 32) {
-		if (i % bytes_per_sector == 0) {
+	for (i = 0, j = 0; i < info->dtsize; i += 32) {
+		if (i % info->nbytesinsect == 0) {
 // Next sector
-			if (read_block(data, dir_table_offset + i)) return 1;
+			if (read_block(data, info->dtoffset + i)) return 1;
 			if (i > 0) j++;
 		}
 		
@@ -433,10 +418,10 @@ uint8_t update_dir_table(	uint8_t *data,
 		}
 	}
 // Check if directory table is full
-	if ((i + (512 * j)) >= dir_table_size) return 1;
+	if ((i + (512 * j)) >= info->dtsize) return 1;
 	
 // Offset of directory table entry
-	uint32_t dir_entry_offset = dir_table_offset + i;
+	uint32_t dir_entry_offset = info->dtoffset + i;
 
 // Set filename prefix
 	dte[0] = 'D'; dte[1] = 'A'; dte[2] = 'T'; dte[3] = 'A';
@@ -462,10 +447,10 @@ uint8_t update_dir_table(	uint8_t *data,
 		data[i] = dte[j];
 	}
 	
-/* We can only write blocks of bytes_per_sector bytes, so make sure the offset
+/* We can only write blocks of nbytesinsect bytes, so make sure the offset
 we're writing to is at the beginning of a sector */
 	write_block(data,
-		dir_entry_offset - (dir_entry_offset % bytes_per_sector), 512);
+		dir_entry_offset - (dir_entry_offset % info->nbytesinsect), 512);
 	
 	return 0;
 }
@@ -474,10 +459,10 @@ we're writing to is at the beginning of a sector */
 /* Find the boot sector, read it (store in data buffer), and verify its		  */
 /* validity																	  */
 /*----------------------------------------------------------------------------*/
-uint8_t read_boot_sector(uint8_t *data) {
+uint8_t read_boot_sector(uint8_t *data, struct fatstruct *boot) {
 /* Find boot sector */
-	hidden_sectors = 0;
-	boot_offset = 0;
+	boot->nhidsects = 0;
+	boot->bootoffset = 0;
 // Read first sector
 	if (read_block(data, 0)) return 1;
 	
@@ -485,14 +470,14 @@ uint8_t read_boot_sector(uint8_t *data) {
 	if (data[0x00] == 0x00) {
 // First sector is not boot sector, find location of boot sector
 // number of hidden sectors: 4 bytes at offset 0x1C6
-		hidden_sectors = data[0x1C6] |
+		boot->nhidsects = data[0x1C6] |
 						 ((uint32_t)data[0x1C7] << 8) |
 						 ((uint32_t)data[0x1C8] << 16) |
 						 ((uint32_t)data[0x1C9] << 24);
 // Location of boot sector
-		boot_offset = hidden_sectors * 512;
+		boot->bootoffset = boot->nhidsects * 512;
 // Read boot sector and store in data buffer
-		if (read_block(data, boot_offset)) return 1;
+		if (read_block(data, boot->bootoffset)) return 1;
 	}
 	
 // Verify validity of boot sector
@@ -504,7 +489,7 @@ uint8_t read_boot_sector(uint8_t *data) {
 /*----------------------------------------------------------------------------*/
 /* Parse the FAT16 boot sector												  */
 /*----------------------------------------------------------------------------*/
-uint8_t parse_boot_sector(uint8_t *data) {
+uint8_t parse_boot_sector(uint8_t *data, struct fatstruct *info) {
 // Is the SD card formatted to FAT16?
 	if ( !(data[0x36] == 'F' &&
 		   data[0x37] == 'A' &&
@@ -525,33 +510,33 @@ uint8_t parse_boot_sector(uint8_t *data) {
 /* number of sectors per FAT:	2 bytes	at offset 0x16	*/
 /* total sectors:				4 bytes	at offset 0x20	*/
 /********************************************************/
-	bytes_per_sector = data[0x0B] | (data[0x0C] << 8);
-	sectors_per_cluster = data[0x0D];
-	bytes_per_cluster = bytes_per_sector * sectors_per_cluster;
-	reserved_sectors = data[0x0E] | (data[0x0F] << 8);
-	number_of_fats = data[0x10];
-	dir_table_size = (data[0x11] | (data[0x12] << 8)) * 32;
-	sectors_per_fat = data[0x16] | (data[0x17] << 8);
-	total_sectors = data[20] | ((uint32_t)data[21] << 8) |
+	info->nbytesinsect = data[0x0B] | (data[0x0C] << 8);
+	info->nsectsinclust = data[0x0D];
+	info->nbytesinclust = info->nbytesinsect * info->nsectsinclust;
+	info->nressects = data[0x0E] | (data[0x0F] << 8);
+	info->nfats = data[0x10];
+	info->dtsize = (data[0x11] | (data[0x12] << 8)) * 32;
+	info->nsectsinfat = data[0x16] | (data[0x17] << 8);
+	info->nsects = data[20] | ((uint32_t)data[21] << 8) |
 		((uint32_t)data[22] << 16) | ((uint32_t)data[23] << 24);
 	
 // Only compatible with sectors of 512 bytes
-	if (bytes_per_sector != 512) return 2;
+	if (info->nbytesinsect != 512) return 2;
 	
 /* Get location of FAT */
-	fat_size = (uint32_t)bytes_per_sector * (uint32_t)sectors_per_fat;
-	fat_offset = (uint32_t)reserved_sectors * (uint32_t)bytes_per_sector +
-				 boot_offset;
+	info->fatsize = (uint32_t)info->nbytesinsect * (uint32_t)info->nsectsinfat;
+	info->fatoffset = (uint32_t)info->nressects * (uint32_t)info->nbytesinsect +
+				 info->bootoffset;
 	
 // Get location of directory table
-	dir_table_offset = (uint32_t)bytes_per_sector *
-						(uint32_t)reserved_sectors +
-						512 * (uint32_t)sectors_per_fat *
-		(uint32_t)number_of_fats +
-		boot_offset;
+	info->dtoffset = (uint32_t)info->nbytesinsect *
+						(uint32_t)info->nressects +
+						512 * (uint32_t)info->nsectsinfat *
+		(uint32_t)info->nfats +
+		info->bootoffset;
 	
 // Get location of first cluster to be used by file data
-	file_cluster_offset = dir_table_offset + dir_table_size;
+	info->fileclustoffset = info->dtoffset + info->dtsize;
 
 	return 0;
 }
@@ -560,7 +545,7 @@ uint8_t parse_boot_sector(uint8_t *data) {
 /* Scan through directory table for highest file number suffix and return the */
 /* next highest number														  */
 /*----------------------------------------------------------------------------*/
-uint16_t get_file_num(uint8_t *data) {
+uint16_t get_file_num(uint8_t *data, struct fatstruct *info) {
 	uint16_t max = 0;			// Highest file number suffix
 	uint16_t tmp16, x;			// Temporary storage
 	uint32_t i, j;
@@ -570,9 +555,9 @@ uint16_t get_file_num(uint8_t *data) {
 
 	do {
 // Check for end of sector
-		if (i % bytes_per_sector == 0) {
+		if (i % info->nbytesinsect == 0) {
 // Read next sector
-			if (read_block(data, dir_table_offset + i)) return 1;
+			if (read_block(data, info->dtoffset + i)) return 1;
 			j = 0;
 		}
 		if (data[j] != 0xE5) {	// 0xE5 marks a deleted file
@@ -583,7 +568,7 @@ uint16_t get_file_num(uint8_t *data) {
 			if (tmp16 > 9) {
 				i += 32;		// Update byte counter
 // Address of next directory table entry
-				j = i % bytes_per_sector;
+				j = i % info->nbytesinsect;
 				continue;
 			}
 
@@ -594,7 +579,7 @@ uint16_t get_file_num(uint8_t *data) {
 			if (tmp16 > 9) {
 				i += 32;		// Update byte counter
 // Address of next directory table entry
-				j = i % bytes_per_sector;
+				j = i % info->nbytesinsect;
 				continue;
 			}
 
@@ -605,7 +590,7 @@ uint16_t get_file_num(uint8_t *data) {
 			if (tmp16 > 9) {
 				i += 32;		// Update byte counter
 // Address of next directory table entry
-				j = i % bytes_per_sector;
+				j = i % info->nbytesinsect;
 				continue;
 			}
 
@@ -617,9 +602,9 @@ uint16_t get_file_num(uint8_t *data) {
 // Update byte counter
 		i += 32;
 // Address of next directory table entry
-		j = i % bytes_per_sector;
+		j = i % info->nbytesinsect;
 // 0x00 marks the end of directory table entries
-	} while (i < dir_table_size && data[j] != 0x00);
+	} while (i < info->dtsize && data[j] != 0x00);
 
 // Return the highest usable file number suffix
 	return (max + 1);
