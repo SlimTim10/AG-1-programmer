@@ -138,17 +138,29 @@ void timer_config(void) {
 }
 
 /*----------------------------------------------------------------------------*/
-/* Enable interrupt for Timer A												  */
+/* Disable Timer0_A5														  */
 /*----------------------------------------------------------------------------*/
-void timer_int_en(void) {
-	TA0CCTL0 = CCIE;			// Enable interrupt
+void timer_disable(void) {
+	TA0CTL = 0x0000;
+	TA0CCTL0 = 0x0000;
+	TA0CCTL1 = 0x0000;
+	TA0CCTL2 = 0x0000;
+	TA0CCTL3 = 0x0000;
+	TA0CCTL4 = 0x0000;
 }
 
-/*----------------------------------------------------------------------------*/
-/* Disable interrupt for Timer A											  */
-/*----------------------------------------------------------------------------*/
-void timer_int_dis(void) {
-	TA0CCTL0 &= (~CCIE);		// Disable interrupt
-}
+///*----------------------------------------------------------------------------*/
+///* Enable interrupt for Timer A												  */
+///*----------------------------------------------------------------------------*/
+//void timer_int_en(void) {
+//	TA0CCTL0 = CCIE;			// Enable interrupt
+//}
+
+///*----------------------------------------------------------------------------*/
+///* Disable interrupt for Timer A											  */
+///*----------------------------------------------------------------------------*/
+//void timer_int_dis(void) {
+//	TA0CCTL0 &= (~CCIE);		// Disable interrupt
+//}
 
 #endif

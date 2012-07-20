@@ -363,7 +363,7 @@ uint8_t valid_block(uint8_t block, struct fatstruct *info) {
 
 /*----------------------------------------------------------------------------*/
 /* Update the FAT															  */
-/* Replace the cluster word at index with num.								  */
+/* Replace the cluster word at byte offset index with num.					  */
 /*----------------------------------------------------------------------------*/
 uint8_t update_fat(	uint8_t *data, struct fatstruct *info,
 					uint16_t index, uint16_t num) {

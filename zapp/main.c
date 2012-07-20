@@ -16,6 +16,10 @@
 #include "circuit.h"
 #include "wave.h"
 
+#define ZAPP_VERSION	1.0a	// Firmware version
+#ifdef ZAPP_VERSION				// Retain constant in executable
+#endif
+
 #define BUFF_SIZE		512		// Size of data buffers
 
 #define CLOCK_SPEED		12		// DCO speed (MHz)
@@ -74,6 +78,7 @@ uint8_t wait_for_ctrl(void);
 void main(void) {
 	uint8_t avail;				// Availability of slave devices
 	uint16_t debounce;			// Used in debouncing
+	
 
 start:
 
@@ -229,7 +234,7 @@ idle_state:
 /* Return 2 to stop logging due to error.									  */
 /*----------------------------------------------------------------------------*/
 uint8_t start_logging(void) {
-	uint16_t voltage;				// Keep track of battery voltage
+//	uint16_t voltage;				// Keep track of battery voltage
 
 /* Check for low voltage */
 //	voltage = adc_read();
@@ -237,7 +242,14 @@ uint8_t start_logging(void) {
 //		return 1;					// Voltage is too low 
 //	}
 
-	uint8_t flash_counter;			// Used for timing LED flashes
+	uint8_t tflash;					// Used for timing LED flashes
+
+	uint32_t	circ_offset_begin;	// Beginning offset of circular buffer
+	uint32_t	circ_offset_end;	// Ending offset of circular buffer
+// Bookmark offset of circular buffer (for file storing)
+	uint32_t	circ_bookmark;
+// Tracking offset of circular buffer (for file storing)
+	uint32_t	circ_track;
 
 /* File tracking variables */
 	uint16_t	file_num;			// File name number suffix
@@ -267,14 +279,85 @@ uint8_t start_logging(void) {
 
 	FEED_WATCHDOG;
 
+/******************************************************************************/
+/* RECORDING TO CIRCULAR BUFFER												  */
+/******************************************************************************/
+
+/* Mark first 5 file clusters as used in FAT (for circular buffer) */
+	if (update_fat(data_sd, &fatinfo, 4, 0x0003)) return 1;
+	if (update_fat(data_sd, &fatinfo, 6, 0x0004)) return 1;
+	if (update_fat(data_sd, &fatinfo, 8, 0x0005)) return 1;
+	if (update_fat(data_sd, &fatinfo, 10, 0x0006)) return 1;
+	if (update_fat(data_sd, &fatinfo, 12, 0xFFFF)) return 1;
+
+///TODO: Find out why higher offsets cannot be written to (too slow?)
+// Circular buffer location
+	circ_offset_begin =	fatinfo.fileclustoffset +
+						(0x0000 * fatinfo.nbytesinclust);
+	circ_offset_end =	fatinfo.fileclustoffset +
+						(0x0005 * fatinfo.nbytesinclust);
+
+/* Initialize loop variables */
+	tflash = 0;
+	block_offset = circ_offset_begin;
+
+	interrupt_config();				// Configure interrupts
+	enable_interrupts();			// Enable interrupts
+
+	timer_config();					// Set up Timer0_A5
+
+/* RECORDING TO CIRCULAR BUFFER LOOP */
+	while (stop_flag == 0) {
+
+/* Check for low voltage */
+//		voltage = adc_read();
+//		if (voltage < VOLTAGE_THRSHLD) {
+//			return 1;				// Voltage is too low 
+//		}
+
+// Wait for data buffer to fill during timer interrupt
+		while (!dump_data) {
+			FEED_WATCHDOG;
+		}
+
+		dump_data = 0;				// Set dump data flag low
+
+// Write block of recorded data
+		if (write_block(data_sd, block_offset, 512)) return 2;
+
+/* Flash LED every 10 writes */
+		tflash++;
+		if (tflash == 10) {
+			LED1_TOGGLE();
+			tflash = 0;
+		}
+
+// Next block (within circular buffer)
+		block_offset += 512;
+		if (block_offset == circ_offset_end) block_offset = circ_offset_begin;
+
+		FEED_WATCHDOG;
+	}
+
+	__disable_interrupt();			// Disable interrupts
+
+	timer_disable();				// Disable Timer0_A5
+
+// Offset at which the circular buffer recording was stopped
+	circ_bookmark = block_offset;
+
 /* Find first free cluster (start search at cluster 2).  If find_cluster
 returns 0, the disk is full */
 	if ((start_cluster = find_cluster(data_sd, &fatinfo)) == 0) return 2;
 
 	FEED_WATCHDOG;
 
+/******************************************************************************/
+/* FILE CREATION AND STORAGE												  */
+/******************************************************************************/
+
 /* Initialize loop variables */
-	flash_counter = 0;
+	tflash = 0;
 	block_num = 0;
 	cluster_num = start_cluster;
 	total_bytes = sizeof(riff) + sizeof(fmt) + sizeof(dat);
@@ -311,46 +394,69 @@ returns 0, the disk is full */
 	dat.cksize = total_bytes - (sizeof(riff) + sizeof(fmt) + sizeof(dat));
 
 // Write WAVE header in data buffer
-	write_header(data_mic, &riff, &fmt, &dat);
-	byte_num = total_bytes;			// Increase byte counter
+	write_header(data_sd, &riff, &fmt, &dat);
 
-	interrupt_config();				// Configure interrupts
-	enable_interrupts();			// Enable interrupts
+// Ensure that rest of data buffer is clear
+	while (total_bytes < 512) {
+		data_sd[total_bytes] = 0x00;
+		total_bytes++;
+	}
 
-	timer_config();					// Set up Timer0_A5
+	FEED_WATCHDOG;
 
+// First cluster offset
+	cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
+
+// First block offset
+	block_offset = cluster_offset + block_num * 512;
+
+// Write first block of data
+	if (write_block(data_sd, block_offset, 512)) return 2;
+
+	block_num++;					// Next block
+
+	FEED_WATCHDOG;
+
+	circ_track = circ_bookmark;
+// Move bookmark to mark end of recording (within circular buffer)
+	circ_bookmark -= 512;
+	if (circ_bookmark < circ_offset_begin) circ_bookmark = circ_offset_end;
+
+/* FILE CREATION AND STORAGE LOOP */
+// Store circular buffer in file, starting at the bookmark
 // cluster_num becomes 0 when the disk is full
-// View break statements at end of loop
-	while (cluster_num > 0) {
-		timer_int_en();				// Enable Timer A interrupt
+// View break statement(s) in end of loop
+	while (	circ_track != circ_bookmark &&
+			cluster_num > 0 && cluster_num < 0xEA00) {	///TMP cluster_num limit
 
 // Update current cluster offset
 		cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
 
-// Loop while block number is valid (not end of cluster) and stop flag is low
-		while (valid_block(block_num, &fatinfo) && stop_flag == 0) {
+// Invalid block number means end of cluster
+		while (	circ_track != circ_bookmark &&
+				valid_block(block_num, &fatinfo)) {
 
-// Wait for data buffer to fill during timer interrupt
-			while (!dump_data && stop_flag == 0) {
-				FEED_WATCHDOG;
-			}
-
-// Get the current block offset
-			block_offset = cluster_offset + block_num * 512;
-// Write block
-			if (write_block(data_sd, block_offset, 512)) return 2;
-			dump_data = 0;			// Set dump data flag low
-			block_num++;			// Next block
-// Update total bytes in file
-			total_bytes += 512;
+			read_block(data_sd, circ_track);
 
 			FEED_WATCHDOG;
 
-/* Toggle LED every 31 block writes (~2 s @ 8 kHz) */
-			flash_counter++;
-			if (flash_counter == 31) {
+// Current block offset
+			block_offset = cluster_offset + block_num * 512;
+// Write block
+			if (write_block(data_sd, block_offset, 512)) return 2;
+
+			block_num++;			// Next block
+// Update total bytes in file
+			total_bytes += 512;
+// Move tracker appropriately (within circular buffer)
+			circ_track += 512;
+			if (circ_track == circ_offset_end) circ_track = circ_offset_begin;
+
+/* Flash LED every 3 writes */
+			tflash++;
+			if (tflash == 3) {
 				LED1_TOGGLE();
-				flash_counter = 0;
+				tflash = 0;
 			}
 
 /* Check for low voltage */
@@ -361,12 +467,6 @@ returns 0, the disk is full */
 
 			FEED_WATCHDOG;
 		}							// Finished data for a cluster
-
-		timer_int_dis();			// Disable Timer A interrupt
-
-// If the signal to stop was given then do not modify the FAT (the chain end
-//bytes are already written)
-		if (stop_flag == 1) break;
 
 // Find next free cluster to continue logging data or stop logging if the max
 //file size has been met
@@ -380,9 +480,6 @@ returns 0, the disk is full */
 
 		FEED_WATCHDOG;
 	}								// End of logging loop
-
-	__disable_interrupt();			// Disable interrupts
-
 
 /* Updating file's WAVE header */
 // Update RIFF chunk size
