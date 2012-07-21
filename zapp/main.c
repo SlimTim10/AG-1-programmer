@@ -426,8 +426,7 @@ returns 0, the disk is full */
 // Store circular buffer in file, starting at the bookmark
 // cluster_num becomes 0 when the disk is full
 // View break statement(s) in end of loop
-	while (	circ_track != circ_bookmark &&
-			cluster_num > 0 && cluster_num < 0xEA00) {	///TMP cluster_num limit
+	while (	circ_track != circ_bookmark && cluster_num > 0) {
 
 // Update current cluster offset
 		cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
