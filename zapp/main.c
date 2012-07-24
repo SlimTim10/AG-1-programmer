@@ -68,6 +68,7 @@ uint8_t wait_for_ctrl(void);
 
 	uint8_t logging;				// Set to 1 to signal device is logging
 	uint8_t stop_flag;				// Set to 1 to signal stop logging
+	uint8_t hold_flag;				// Set to 1 to signal button hold
 
 	uint8_t format_sd_flag;			// Flag to determine when to format SD card
 									// (Set in PORT1_ISR)
@@ -76,11 +77,9 @@ uint8_t wait_for_ctrl(void);
 /* Main routine																  */
 /*----------------------------------------------------------------------------*/
 void main(void) {
-	uint8_t avail;				// Availability of slave devices
-	uint16_t debounce;			// Used in debouncing
-	
+	uint8_t avail;				// Availability of slave devices	
 
-start:
+start:							// Off state
 
 	avail = 0xFF;				// Assume no slaves are available
 
@@ -127,109 +126,78 @@ start:
 
 	spi_config();				// Set up SPI for MCU
 
-idle_state:
-/* Main system loop (idle until button tap or hold) */
-	while (1) {
-		wdt_config();			// Configure and start watchdog
+	wdt_config();				// Configure and start watchdog
 
-		logging = 0;			// Device is not logging
+	logging = 0;				// Device is not logging
 
 /* Turn off power to all slave devices */
-		power_off(SD_PWR);
-		power_off(ACCEL_PWR);
-		power_off(GYRO_PWR);
+	power_off(SD_PWR);
+	power_off(ACCEL_PWR);
+	power_off(GYRO_PWR);
 
-		mcu_spi_off();			// Turn off all MCU SPI outputs
-	
-// Wait for button tap or hold
-		if (wait_for_ctrl() == CTRL_HOLD) {
-			goto start;			// Button hold: go back to start (off state)
-		}
-
-		spi_config();			// Set up SPI for MCU
-
-		power_on(SD_PWR);		// Turn on power to SD Card
-
-/* Get availability of SD Card */
-		avail = init_sd();
-
-		while (avail != 0) {	// At least one slave is not available
-			FEED_WATCHDOG;
-
-			if (avail & 1) {	// SD Card is not available
-				LED1_PANIC();	// Flash LED to show "panic"
-			}
-
-			power_off(SD_PWR);	// Turn off power to SD Card
+	mcu_spi_off();				// Turn off all MCU SPI outputs
 
 // Wait for button tap or hold
-			if (wait_for_ctrl() == CTRL_HOLD) {
-				goto start;		// Button hold--go back to start (off state)
-			}
+//	if (wait_for_ctrl() == CTRL_HOLD) {
+//		goto start;				// Button hold: go back to start (off state)
+//	}
 
-			power_on(SD_PWR);	// Turn on power to SD Card
+	spi_config();				// Set up SPI for MCU
 
-/* Get availability of SD Card */
-			avail = init_sd();
-		}
+	power_on(SD_PWR);			// Turn on power to SD Card
+
+// Get availability of SD Card
+	avail = init_sd();
+
+	if (avail != 0) {			// At least one slave is not available
+		LED1_PANIC();			// Flash LED to show "panic"
+		goto start;				// Turn off upon failure
+	}
 
 /* Set pointers to data buffer addresses */
-		data_mic = data_mic_buff;
-		data_sd = data_sd_buff;
+	data_mic = data_mic_buff;
+	data_sd = data_sd_buff;
 
-		FEED_WATCHDOG;
+	FEED_WATCHDOG;
 
 // Find and read the FAT16 boot sector
-		if (read_boot_sector(data_sd, &fatinfo)) {
-			LED1_ON();
-			HANG();
-		}
+	if (read_boot_sector(data_sd, &fatinfo)) {
+		LED1_ON();
+		HANG();
+	}
 
-		FEED_WATCHDOG;
+	FEED_WATCHDOG;
 
 // Parse the FAT16 boot sector
-		if (parse_boot_sector(data_sd, &fatinfo)) {
-			LED1_PANIC();		// Flash LED to show "panic"
-			goto idle_state;	// Go back to idle state
-		}
+	if (parse_boot_sector(data_sd, &fatinfo)) {
+		LED1_PANIC();			// Flash LED to show "panic"
+		goto start;				// Turn off upon failure
+	}
 
-		FEED_WATCHDOG;
+	FEED_WATCHDOG;
 
 // Set up microphone
 ///TODO
-	
-		LED1_ON();
-	
-// Start logging data to MicroSD card
-		uint8_t log_error;
-		if ((log_error = start_logging()) >= 2) {
-			LED1_ON();			// Logging failed due to error
-			log_error += 10;
-			HANG();
-		}
 
-		power_off(SD_PWR);		// Turn off power to SD Card
+// Start the logging loop
+	uint8_t log_error;
+	while (log_error = start_logging());
+
+	power_off(SD_PWR);			// Turn off power to SD Card
+	LED1_OFF();
 
 // Stopped logging due to low voltage
-		if (log_error == 1) {
-			LED1_LOW_VOLTAGE();	// Signal low voltage with LED1
-			goto start;			// Go back to start (off state)
-		}
-	
-		LED1_OFF();
-	
-/* Debouncing after button tap to stop logging */
-		debounce = 0x1000;
-		while (debounce--);		// Wait for debouncing
-// Wait for button release
-		while (ctrl_high());
+	if (log_error == 1) {
+		LED1_LOW_VOLTAGE();		// Signal low voltage with LED1
 	}
+
+	goto start;					// Go back to start (off state)
 }
 
 /*----------------------------------------------------------------------------*/
 /* Start writing data to the MicroSD card									  */
 /*																			  */
-/* Return 0 to stop logging due to 'stop' signal.							  */
+/* Return 0 to stop logging due to button hold.								  */
 /* Return 1 to stop logging due to low voltage.								  */
 /* Return 2 to stop logging due to error.									  */
 /*----------------------------------------------------------------------------*/
@@ -272,12 +240,14 @@ uint8_t start_logging(void) {
 
 /* Initialize global variables */
 	logging = 1;					// Device is now in logging state
-	stop_flag = 0;					// Change to 1 to signal stop logging
+	hold_flag = 0;					// Change to 1 to signal button hold
 	new_sample = 0;
 	byte_num = 0;
 	dump_data = 0;
 
 	FEED_WATCHDOG;
+
+	LED1_DOT();
 
 /******************************************************************************/
 /* RECORDING TO CIRCULAR BUFFER												  */
@@ -297,17 +267,24 @@ uint8_t start_logging(void) {
 	circ_offset_end =	fatinfo.fileclustoffset +
 						(0x0005 * fatinfo.nbytesinclust);
 
+/* MAIN LOGGING LOOP (Finish upon button hold--see breaks in loop) */
+	while (1) {
+
 /* Initialize loop variables */
-	tflash = 0;
-	block_offset = circ_offset_begin;
+		stop_flag = 0;				// Change to 1 to signal stop logging
+		tflash = 0;					// LED flash timer
+// Block offset (start at beginning of circular buffer)
+		block_offset = circ_offset_begin;
 
-	interrupt_config();				// Configure interrupts
-	enable_interrupts();			// Enable interrupts
+		interrupt_config();			// Configure interrupts
+		enable_interrupts();		// Enable interrupts
 
-	timer_config();					// Set up Timer0_A5
+		timer_config();				// Set up Timer0_A5
+
+		LED1_DOT();
 
 /* RECORDING TO CIRCULAR BUFFER LOOP */
-	while (stop_flag == 0) {
+		while (stop_flag == 0) {
 
 /* Check for low voltage */
 //		voltage = adc_read();
@@ -316,147 +293,158 @@ uint8_t start_logging(void) {
 //		}
 
 // Wait for data buffer to fill during timer interrupt
-		while (!dump_data) {
-			FEED_WATCHDOG;
-		}
+			while (!dump_data) {
+				FEED_WATCHDOG;
+			}
 
-		dump_data = 0;				// Set dump data flag low
+			dump_data = 0;			// Set dump data flag low
 
 // Write block of recorded data
-		if (write_block(data_sd, block_offset, 512)) return 2;
+			if (write_block(data_sd, block_offset, 512)) return 2;
 
-/* Flash LED every 10 writes */
-		tflash++;
-		if (tflash == 10) {
-			LED1_TOGGLE();
-			tflash = 0;
-		}
+/* Flash LED every 50 writes */
+			tflash++;
+			if (tflash == 50) {
+				LED1_DOT();
+				tflash = 0;
+			}
 
 // Next block (within circular buffer)
-		block_offset += 512;
-		if (block_offset == circ_offset_end) block_offset = circ_offset_begin;
+			block_offset += 512;
+			if (block_offset == circ_offset_end) {
+				block_offset = circ_offset_begin;
+			}
 
-		FEED_WATCHDOG;
-	}
+			FEED_WATCHDOG;
+		}							// End of recording to circular buffer
 
-	__disable_interrupt();			// Disable interrupts
+		__disable_interrupt();		// Disable interrupts
 
-	timer_disable();				// Disable Timer0_A5
+		timer_disable();			// Disable Timer0_A5
+
+// Stop upon button hold
+		if (hold_flag) {
+			break;
+		}
 
 // Offset at which the circular buffer recording was stopped
-	circ_bookmark = block_offset;
+		circ_bookmark = block_offset;
 
 /* Find first free cluster (start search at cluster 2).  If find_cluster
 returns 0, the disk is full */
-	if ((start_cluster = find_cluster(data_sd, &fatinfo)) == 0) return 2;
+		if ((start_cluster = find_cluster(data_sd, &fatinfo)) == 0) return 2;
 
-	FEED_WATCHDOG;
+		FEED_WATCHDOG;
 
 /******************************************************************************/
 /* FILE CREATION AND STORAGE												  */
 /******************************************************************************/
 
 /* Initialize loop variables */
-	tflash = 0;
-	block_num = 0;
-	cluster_num = start_cluster;
-	total_bytes = sizeof(riff) + sizeof(fmt) + sizeof(dat);
+		tflash = 0;
+		block_num = 0;
+		cluster_num = start_cluster;
+		total_bytes = sizeof(riff) + sizeof(fmt) + sizeof(dat);
 
 /* Set WAVE header information */
-	riff.info.ckid[0] = 'R';		// Chunk ID: "RIFF"
-	riff.info.ckid[1] = 'I';
-	riff.info.ckid[2] = 'F';
-	riff.info.ckid[3] = 'F';
+		riff.info.ckid[0] = 'R';	// Chunk ID: "RIFF"
+		riff.info.ckid[1] = 'I';
+		riff.info.ckid[2] = 'F';
+		riff.info.ckid[3] = 'F';
 // Chunk size
-	riff.info.cksize = total_bytes - sizeof(riff.info);
-	riff.format[0] = 'W';			// RIFF format: "WAVE"
-	riff.format[1] = 'A';
-	riff.format[2] = 'V';
-	riff.format[3] = 'E';
-	fmt.info.ckid[0] = 'f';			// Chunk ID: "fmt"
-	fmt.info.ckid[1] = 'm';
-	fmt.info.ckid[2] = 't';
-	fmt.info.ckid[3] = ' ';
-	fmt.info.cksize = 16;			// Chunk size: 16
-	fmt.format = WAVE_FORMAT_PCM;	// Audio format: PCM
-	fmt.nchannels = 1;				// Channels: 1 (Mono)
-	fmt.nsamplerate = 8000;			// 8 kHz sample rate
-	fmt.bits = 8;					// 8 bits per sample
+		riff.info.cksize = total_bytes - sizeof(riff.info);
+		riff.format[0] = 'W';		// RIFF format: "WAVE"
+		riff.format[1] = 'A';
+		riff.format[2] = 'V';
+		riff.format[3] = 'E';
+		fmt.info.ckid[0] = 'f';		// Chunk ID: "fmt"
+		fmt.info.ckid[1] = 'm';
+		fmt.info.ckid[2] = 't';
+		fmt.info.ckid[3] = ' ';
+		fmt.info.cksize = 16;		// Chunk size: 16
+		fmt.format = WAVE_FORMAT_PCM;// Audio format: PCM
+		fmt.nchannels = 1;			// Channels: 1 (Mono)
+		fmt.nsamplerate = 8000;		// 8 kHz sample rate
+		fmt.bits = 8;				// 8 bits per sample
 // Block alignment
-	fmt.nblockalign = fmt.nchannels * (fmt.bits / 8);
+		fmt.nblockalign = fmt.nchannels * (fmt.bits / 8);
 // Average data-transfer rate
-	fmt.navgrate = fmt.nsamplerate * fmt.nblockalign;
-	dat.ckid[0] = 'd';				// Chunk ID: "data"
-	dat.ckid[1] = 'a';
-	dat.ckid[2] = 't';
-	dat.ckid[3] = 'a';
+		fmt.navgrate = fmt.nsamplerate * fmt.nblockalign;
+		dat.ckid[0] = 'd';			// Chunk ID: "data"
+		dat.ckid[1] = 'a';
+		dat.ckid[2] = 't';
+		dat.ckid[3] = 'a';
 // Chunk size
-	dat.cksize = total_bytes - (sizeof(riff) + sizeof(fmt) + sizeof(dat));
+		dat.cksize = total_bytes - (sizeof(riff) + sizeof(fmt) + sizeof(dat));
 
 // Write WAVE header in data buffer
-	write_header(data_sd, &riff, &fmt, &dat);
+		write_header(data_sd, &riff, &fmt, &dat);
 
 // Ensure that rest of data buffer is clear
-	while (total_bytes < 512) {
-		data_sd[total_bytes] = 0x00;
-		total_bytes++;
-	}
+		while (total_bytes < 512) {
+			data_sd[total_bytes] = 0x00;
+			total_bytes++;
+		}
 
-	FEED_WATCHDOG;
+		FEED_WATCHDOG;
 
 // First cluster offset
-	cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
+		cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
 
 // First block offset
-	block_offset = cluster_offset + block_num * 512;
+		block_offset = cluster_offset + block_num * 512;
 
 // Write first block of data
-	if (write_block(data_sd, block_offset, 512)) return 2;
+		if (write_block(data_sd, block_offset, 512)) return 2;
 
-	block_num++;					// Next block
+		block_num++;				// Next block
 
-	FEED_WATCHDOG;
+		FEED_WATCHDOG;
 
-	circ_track = circ_bookmark;
+		circ_track = circ_bookmark;
 // Move bookmark to mark end of recording (within circular buffer)
-	circ_bookmark -= 512;
-	if (circ_bookmark < circ_offset_begin) circ_bookmark = circ_offset_end;
+		circ_bookmark -= 512;
+		if (circ_bookmark < circ_offset_begin) circ_bookmark = circ_offset_end;
 
 /* FILE CREATION AND STORAGE LOOP */
 // Store circular buffer in file, starting at the bookmark
 // cluster_num becomes 0 when the disk is full
 // View break statement(s) in end of loop
-	while (	circ_track != circ_bookmark && cluster_num > 0) {
+		while (	circ_track != circ_bookmark && cluster_num > 0) {
 
 // Update current cluster offset
-		cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
+			cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
 
 // Invalid block number means end of cluster
-		while (	circ_track != circ_bookmark &&
-				valid_block(block_num, &fatinfo)) {
+			while (	circ_track != circ_bookmark &&
+					valid_block(block_num, &fatinfo)) {
 
-			read_block(data_sd, circ_track);
+				read_block(data_sd, circ_track);
 
-			FEED_WATCHDOG;
+				FEED_WATCHDOG;
 
 // Current block offset
-			block_offset = cluster_offset + block_num * 512;
+				block_offset = cluster_offset + block_num * 512;
 // Write block
-			if (write_block(data_sd, block_offset, 512)) return 2;
+				if (write_block(data_sd, block_offset, 512)) return 2;
 
-			block_num++;			// Next block
+				block_num++;		// Next block
+
 // Update total bytes in file
-			total_bytes += 512;
-// Move tracker appropriately (within circular buffer)
-			circ_track += 512;
-			if (circ_track == circ_offset_end) circ_track = circ_offset_begin;
+				total_bytes += 512;
 
-/* Flash LED every 3 writes */
-			tflash++;
-			if (tflash == 3) {
-				LED1_TOGGLE();
-				tflash = 0;
-			}
+/* Move tracker appropriately (within circular buffer) */
+				circ_track += 512;
+				if (circ_track == circ_offset_end) {
+					circ_track = circ_offset_begin;
+				}
+
+/* Toggle LED every 3 writes to show writing in progress */
+				tflash++;
+				if (tflash == 3) {
+					LED1_TOGGLE();
+					tflash = 0;
+				}
 
 /* Check for low voltage */
 //			voltage = adc_read();
@@ -464,46 +452,48 @@ returns 0, the disk is full */
 //				stop_flag = 1;		// Set stop flag high
 //			}
 
-			FEED_WATCHDOG;
-		}							// Finished data for a cluster
+				FEED_WATCHDOG;
+			}						// Finished data for a cluster
 
 // Find next free cluster to continue logging data or stop logging if the max
 //file size has been met
-		if ((tmp16 = find_cluster(data_sd, &fatinfo)) == 0) break;
+			if ((tmp16 = find_cluster(data_sd, &fatinfo)) == 0) break;
 
 // Update FAT (point used cluster to next free cluster)
-		if (update_fat(data_sd, &fatinfo, cluster_num * 2, tmp16)) return 1;
+			if (update_fat(data_sd, &fatinfo, cluster_num * 2, tmp16)) return 2;
 
-		cluster_num = tmp16;		// Next cluster
-		block_num = 0;				// Reset block number
+			cluster_num = tmp16;	// Next cluster
+			block_num = 0;			// Reset block number
 
-		FEED_WATCHDOG;
-	}								// End of logging loop
+			FEED_WATCHDOG;
+		}							// End of file creation and storage
 
 /* Updating file's WAVE header */
 // Update RIFF chunk size
-	riff.info.cksize = total_bytes - sizeof(riff.info);
+		riff.info.cksize = total_bytes - sizeof(riff.info);
 // Update data chunk size
-	dat.cksize = total_bytes - (sizeof(riff) + sizeof(fmt) + sizeof(dat));
+		dat.cksize = total_bytes - (sizeof(riff) + sizeof(fmt) + sizeof(dat));
 // First block of file data
-	block_offset = get_cluster_offset(start_cluster, &fatinfo);
+		block_offset = get_cluster_offset(start_cluster, &fatinfo);
 // Read block
-	read_block(data_sd, block_offset);
+		read_block(data_sd, block_offset);
 // Update WAVE header in data buffer
-	write_header(data_sd, &riff, &fmt, &dat);
+		write_header(data_sd, &riff, &fmt, &dat);
 // Write block
-	write_block(data_sd, block_offset, 512);
+		write_block(data_sd, block_offset, 512);
 
-	FEED_WATCHDOG;
+		FEED_WATCHDOG;
 
 /* Updating directory table */
 // Get appropriate number for file name suffix
-	file_num = get_file_num(data_sd, &fatinfo);
-	FEED_WATCHDOG;
+		file_num = get_file_num(data_sd, &fatinfo);
+		FEED_WATCHDOG;
 // Update the directory table
-	if (update_dir_table(	data_sd, &fatinfo,
-							start_cluster, total_bytes, file_num))
-		return 1;
+		if (update_dir_table(	data_sd, &fatinfo,
+								start_cluster, total_bytes, file_num))
+			return 2;
+
+	}								// End of main logging loop
 
 	logging = 0;					// Device is not logging
 
@@ -686,12 +676,33 @@ __interrupt void PORT1_ISR(void) {
 			debounce = 0x1000;
 			while (debounce--);	// Wait for debouncing
 	
-// Wait until button is released
-			while (ctrl_high()) {
+/* Wait until button is released or hold time (2 sec) is met */
+			rtc_restart();		// Restart RTC
+			sec = RTCSEC;
+			while (ctrl_high() && sec < 2) {
 				FEED_WATCHDOG;
+// Get new RTCSEC value when RTC is ready
+				if (rtc_rdy()) {
+					sec = RTCSEC;
+				}
 			}
-	
-			LED1_DOT();			// Indicate button press to user
+
+///* Set hold flag if button was held for >2 seconds */
+//			if (sec >= 2) {
+//				hold_flag = 1;
+//			}
+
+/* Set hold flag if button was held for >2 seconds */
+			if (sec >= 2) {
+				hold_flag = 1;
+/* Turn on LED for 1 second to signal button hold recognized */
+				LED1_ON();
+				rtc_restart();
+				while (RTCSEC < 1) {
+					FEED_WATCHDOG;
+				}
+			}
+
 			stop_flag = 1;		// Stop logging signal
 
 			clear_int_ctrl();	// Clear CTRL button interrupt flag
