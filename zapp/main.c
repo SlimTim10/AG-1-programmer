@@ -91,7 +91,7 @@ start:							// Off state
 
 /* Turn off power to all slave devices */
 	power_off(SD_PWR);
-	power_off(ACCEL_PWR);
+///TEST	power_off(ACCEL_PWR);
 	power_off(GYRO_PWR);
 
 	mcu_spi_off();				// Turn off all MCU SPI outputs
@@ -132,7 +132,7 @@ start:							// Off state
 
 /* Turn off power to all slave devices */
 	power_off(SD_PWR);
-	power_off(ACCEL_PWR);
+///TEST	power_off(ACCEL_PWR);
 	power_off(GYRO_PWR);
 
 	mcu_spi_off();				// Turn off all MCU SPI outputs
@@ -145,6 +145,7 @@ start:							// Off state
 	spi_config();				// Set up SPI for MCU
 
 	power_on(SD_PWR);			// Turn on power to SD Card
+	power_on(ACCEL_PWR); ///TEST
 
 // Get availability of SD Card
 	avail = init_sd();
@@ -184,6 +185,7 @@ start:							// Off state
 	while (log_error = start_logging());
 
 	power_off(SD_PWR);			// Turn off power to SD Card
+	power_off(ACCEL_PWR); ///TEST
 	LED1_OFF();
 
 // Stopped logging due to low voltage

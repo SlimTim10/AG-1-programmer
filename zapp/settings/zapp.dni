@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=-399262604
+Checksum=-278492701
 [DisAssemblyWindow]
 NumStates=_ 1
 State 1=_ 1
@@ -26,6 +26,20 @@ UseTrigger=1
 TriggerName=main
 LimitSize=0
 ByteLimit=50
+[Log file]
+LoggingEnabled=_ 0
+LogFile=_ ""
+Category=_ 0
+[TermIOLog]
+LoggingEnabled=_ 0
+LogFile=_ ""
+[CallStackLog]
+Enabled=0
+[DriverProfiling]
+Enabled=0
+Mode=1
+Graph=0
+Symbiont=0
 [Breakpoints]
 Count=0
 [FET]
@@ -33,7 +47,7 @@ Clock mode=14
 Extended Clock mode=-1
 Secure Password=
 Extended Clock Control Enable=1
-Advanced Extended Clock Control=1
+Advanced Extended Clock Control=0
 Emulation mode=0
 Free running=0
 Shutting Down=3
@@ -48,20 +62,6 @@ SP=0
 SR=0
 all registers=0
 File name=
-[Log file]
-LoggingEnabled=_ 0
-LogFile=_ ""
-Category=_ 0
-[TermIOLog]
-LoggingEnabled=_ 0
-LogFile=_ ""
 [Aliases]
 Count=0
 SuppressDialog=0
-[CallStackLog]
-Enabled=0
-[DriverProfiling]
-Enabled=0
-Mode=285574936
-Graph=0
-Symbiont=0
