@@ -1,0 +1,28 @@
+Author: Tim Johns, Icewire Technologies Inc.
+
+The zapp project was created using IAR Embedded Workbench 6.0 and is compiled using the following settings:
+    General Options
+        Device: MSP430F5310
+        Hardware multiplier: Allow direct access
+        Data Model: Small
+        Floating-point: 32 bits
+        Stack size: 300
+        Data16 heap size: 160
+    C/C++ compiler
+        Language: C
+        C dialect: C99
+        Language conformance: Standard with IAR extensions
+        Optimizations Level: Low
+    Debugger
+        Driver: FET Debugger
+        FET Debugger
+            Connection: Olimex USB
+            Debug protocol: Automatic selection
+            Target VCC: 3.3
+            Flash erase: Erase main and Information memory
+
+The current schematic is identical to that of project bender, but with microphone analog output added as input to VCC_SD_HALF.
+
+The current user interface consists of a single button. A button hold turns the device on. The device begins logging microphone data to a circular buffer located on the FAT16-formatted microSD card (the first 5 file clusters after the directory table). A button tap during this state causes a file to be created with its audio data being a copy of the circular buffer's data. Subsequent button taps cause new files to be created in the same manner. A button hold turns the device off.
+
+The current audio file format being used is WAVE at 8 kHz sample rate, 8 bits per sample, single-channel (mono).

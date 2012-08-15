@@ -262,12 +262,16 @@ uint8_t start_logging(void) {
 	if (update_fat(data_sd, &fatinfo, 10, 0x0006)) return 1;
 	if (update_fat(data_sd, &fatinfo, 12, 0xFFFF)) return 1;
 
-///TODO: Find out why higher offsets cannot be written to (too slow?)
 // Circular buffer location
-	circ_offset_begin =	fatinfo.fileclustoffset +
-						(0x0000 * fatinfo.nbytesinclust);
-	circ_offset_end =	fatinfo.fileclustoffset +
-						(0x0005 * fatinfo.nbytesinclust);
+
+//	circ_offset_begin =	fatinfo.fileclustoffset +
+//						(0x0000 * fatinfo.nbytesinclust);
+//	circ_offset_end =	fatinfo.fileclustoffset +
+//						(0x0005 * fatinfo.nbytesinclust);
+
+///TEST
+	circ_offset_begin =	0xEEB2 * fatinfo.nbytesinclust;
+	circ_offset_end =	0xEEB7 * fatinfo.nbytesinclust;
 
 /* MAIN LOGGING LOOP (Finish upon button hold--see breaks in loop) */
 	while (1) {
