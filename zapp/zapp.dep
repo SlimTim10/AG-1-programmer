@@ -132,10 +132,6 @@
           <name>ICC430</name>
           <file> 18 14 21 24 27 26 29 34 30 31 32 10 4 8</file>
         </tool>
-        <tool>
-          <name>BICOMP</name>
-          <file> 18 14 21 24 27 26 29 30 31 32 10 4 8</file>
-        </tool>
       </inputs>
     </file>
     <file>

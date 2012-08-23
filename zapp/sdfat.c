@@ -133,7 +133,7 @@ void go_idle_sd() {
 uint8_t send_cmd_sd(uint8_t cmd, uint32_t arg) {
 	uint8_t status;
 	uint8_t crc;
-	
+
 	spia_send(cmd | 0x40);		// Send command
 	
 // Send argument

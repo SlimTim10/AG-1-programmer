@@ -264,14 +264,14 @@ uint8_t start_logging(void) {
 
 // Circular buffer location
 
-//	circ_offset_begin =	fatinfo.fileclustoffset +
-//						(0x0000 * fatinfo.nbytesinclust);
-//	circ_offset_end =	fatinfo.fileclustoffset +
-//						(0x0005 * fatinfo.nbytesinclust);
+	circ_offset_begin =	fatinfo.fileclustoffset +
+						(0x0000 * fatinfo.nbytesinclust);
+	circ_offset_end =	fatinfo.fileclustoffset +
+						(0x0005 * fatinfo.nbytesinclust);
 
 ///TEST
-	circ_offset_begin =	0xEEB2 * fatinfo.nbytesinclust;
-	circ_offset_end =	0xEEB7 * fatinfo.nbytesinclust;
+//	circ_offset_begin =	0xEEB2 * fatinfo.nbytesinclust;
+//	circ_offset_end =	0xEEB7 * fatinfo.nbytesinclust;
 
 /* MAIN LOGGING LOOP (Finish upon button hold--see breaks in loop) */
 	while (1) {
