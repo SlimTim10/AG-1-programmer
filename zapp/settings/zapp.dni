@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=220040274
+Checksum=1197090150
 [DisAssemblyWindow]
 NumStates=_ 1
 State 1=_ 1
@@ -14,7 +14,7 @@ Control Register=0
 NextState0=0
 NextState1=0
 [Action Register]
-Break=1
+Break=2
 State Storage=0
 [StackPlugin]
 Enabled=1
@@ -62,6 +62,6 @@ SuppressDialog=0
 Enabled=0
 [DriverProfiling]
 Enabled=0
-Mode=156850064
+Mode=125381552
 Graph=0
 Symbiont=0

@@ -27,6 +27,11 @@
 #define CTRL_TAP		0		// Button tap (shorter than hold)
 #define CTRL_HOLD		1		// Button hold
 
+// Circular buffer's location as absolute cluster numbers
+// (offset = cluster number * bytes per cluster)
+#define CIRC_BUFF_CLUST_BEGIN	0xDEB8
+#define CIRC_BUFF_CLUST_END		0xEEB8
+
 // Feed the watchdog
 #define FEED_WATCHDOG	wdt_config()
 
@@ -220,6 +225,7 @@ uint8_t start_logging(void) {
 	uint32_t	circ_bookmark;
 // Tracking offset of circular buffer (for file storing)
 	uint32_t	circ_track;
+	uint32_t	clip_length;		// Length of file recording in bytes
 
 /* File tracking variables */
 	uint16_t	file_num;			// File name number suffix
@@ -255,19 +261,10 @@ uint8_t start_logging(void) {
 /* RECORDING TO CIRCULAR BUFFER												  */
 /******************************************************************************/
 
-/* Mark first 5 file clusters as used in FAT (for circular buffer) */
-	if (update_fat(data_sd, &fatinfo, 4, 0x0003)) return 1;
-	if (update_fat(data_sd, &fatinfo, 6, 0x0004)) return 1;
-	if (update_fat(data_sd, &fatinfo, 8, 0x0005)) return 1;
-	if (update_fat(data_sd, &fatinfo, 10, 0x0006)) return 1;
-	if (update_fat(data_sd, &fatinfo, 12, 0xFFFF)) return 1;
-
 // Circular buffer location
-
-	circ_offset_begin =	fatinfo.fileclustoffset +
-						(0x0000 * fatinfo.nbytesinclust);
-	circ_offset_end =	fatinfo.fileclustoffset +
-						(0x0005 * fatinfo.nbytesinclust);
+	circ_offset_begin	= CIRC_BUFF_CLUST_BEGIN * fatinfo.nbytesinclust;
+	circ_offset_end		= CIRC_BUFF_CLUST_END * fatinfo.nbytesinclust;
+///HERE
 
 ///TEST
 //	circ_offset_begin =	0xEEB2 * fatinfo.nbytesinclust;
@@ -308,9 +305,8 @@ uint8_t start_logging(void) {
 // Write block of recorded data
 			if (write_block(data_sd, block_offset, 512)) return 2;
 
-/* Flash LED every 50 writes */
 			tflash++;
-			if (tflash == 50) {
+			if (tflash == 50) {		// Flash LED every 50 block writes
 				LED1_DOT();
 				tflash = 0;
 			}
@@ -322,7 +318,7 @@ uint8_t start_logging(void) {
 			}
 
 			FEED_WATCHDOG;
-		}							// End of recording to circular buffer
+		}					// End of recording to circular buffer
 
 		__disable_interrupt();		// Disable interrupts
 
@@ -353,30 +349,30 @@ returns 0, the disk is full */
 		total_bytes = sizeof(riff) + sizeof(fmt) + sizeof(dat);
 
 /* Set WAVE header information */
-		riff.info.ckid[0] = 'R';	// Chunk ID: "RIFF"
+		riff.info.ckid[0] = 'R';		// Chunk ID: "RIFF"
 		riff.info.ckid[1] = 'I';
 		riff.info.ckid[2] = 'F';
 		riff.info.ckid[3] = 'F';
 // Chunk size
 		riff.info.cksize = total_bytes - sizeof(riff.info);
-		riff.format[0] = 'W';		// RIFF format: "WAVE"
+		riff.format[0] = 'W';			// RIFF format: "WAVE"
 		riff.format[1] = 'A';
 		riff.format[2] = 'V';
 		riff.format[3] = 'E';
-		fmt.info.ckid[0] = 'f';		// Chunk ID: "fmt"
+		fmt.info.ckid[0] = 'f';			// Chunk ID: "fmt"
 		fmt.info.ckid[1] = 'm';
 		fmt.info.ckid[2] = 't';
 		fmt.info.ckid[3] = ' ';
-		fmt.info.cksize = 16;		// Chunk size: 16
-		fmt.format = WAVE_FORMAT_PCM;// Audio format: PCM
-		fmt.nchannels = 1;			// Channels: 1 (Mono)
-		fmt.nsamplerate = 8000;		// 8 kHz sample rate
-		fmt.bits = 8;				// 8 bits per sample
+		fmt.info.cksize = 16;			// Chunk size: 16
+		fmt.format = WAVE_FORMAT_PCM;	// Audio format: PCM
+		fmt.nchannels = 1;				// Channels: 1 (Mono)
+		fmt.nsamplerate = 8000;			// 8 kHz sample rate
+		fmt.bits = 8;					// 8 bits per sample
 // Block alignment
 		fmt.nblockalign = fmt.nchannels * (fmt.bits / 8);
 // Average data-transfer rate
 		fmt.navgrate = fmt.nsamplerate * fmt.nblockalign;
-		dat.ckid[0] = 'd';			// Chunk ID: "data"
+		dat.ckid[0] = 'd';				// Chunk ID: "data"
 		dat.ckid[1] = 'a';
 		dat.ckid[2] = 't';
 		dat.ckid[3] = 'a';
@@ -403,24 +399,35 @@ returns 0, the disk is full */
 // Write first block of data
 		if (write_block(data_sd, block_offset, 512)) return 2;
 
-		block_num++;				// Next block
+		block_num++;	// Next block
 
 		FEED_WATCHDOG;
 
-		circ_track = circ_bookmark;
-// Move bookmark to mark end of recording (within circular buffer)
-		circ_bookmark -= 512;
-		if (circ_bookmark < circ_offset_begin) circ_bookmark = circ_offset_end;
+// Size of file clip: 5 clusters = 20 seconds at 8 kHz
+		clip_length = 5 * fatinfo.nbytesinclust;
+
+// Set tracker offset
+// File clip data location: circ_track to circ_bookmark
+		circ_track = circ_bookmark - clip_length;
+		if (circ_track < circ_offset_begin) {
+			circ_track = circ_offset_end - (circ_offset_begin - circ_track);
+		}
 
 /* FILE CREATION AND STORAGE LOOP */
 // Store circular buffer in file, starting at the bookmark
 // cluster_num becomes 0 when the disk is full
 // View break statement(s) in end of loop
-		while (	circ_track != circ_bookmark && cluster_num > 0) {
+		while (circ_track != circ_bookmark && cluster_num > 0) {
+
+// Wrap at end of circular buffer
+			if (circ_track >= circ_offset_end) {
+				circ_track = circ_offset_begin;
+			}
 
 // Update current cluster offset
 			cluster_offset = get_cluster_offset(cluster_num, &fatinfo);
 
+// Fill up a cluster
 // Invalid block number means end of cluster
 			while (	circ_track != circ_bookmark &&
 					valid_block(block_num, &fatinfo)) {
@@ -434,29 +441,28 @@ returns 0, the disk is full */
 // Write block
 				if (write_block(data_sd, block_offset, 512)) return 2;
 
-				block_num++;		// Next block
+				block_num++;	// Next block
 
 // Update total bytes in file
 				total_bytes += 512;
 
-/* Move tracker appropriately (within circular buffer) */
+// Move tracker appropriately (within circular buffer)
 				circ_track += 512;
 				if (circ_track == circ_offset_end) {
 					circ_track = circ_offset_begin;
 				}
 
-/* Toggle LED every 3 writes to show writing in progress */
+// Toggle LED every 3 block writes to show writing in progress
 				tflash++;
 				if (tflash == 3) {
 					LED1_TOGGLE();
 					tflash = 0;
 				}
 
-/* Check for low voltage */
-//			voltage = adc_read();
-//			if (voltage < VOLTAGE_THRSHLD) {
-//				stop_flag = 1;		// Set stop flag high
-//			}
+//				voltage = adc_read();				// Get voltage
+//				if (voltage < VOLTAGE_THRSHLD) {	// Check for low voltage
+//					stop_flag = 1;					// Set stop flag high
+//				}
 
 				FEED_WATCHDOG;
 			}						// Finished data for a cluster
