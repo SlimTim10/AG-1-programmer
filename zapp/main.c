@@ -395,7 +395,8 @@ returns 0, the disk is full */
 
 // First block offset
 		block_offset = cluster_offset + block_num * 512;
-
+// File data may not reach circular buffer
+		if (block_offset >= circ_offset_begin) return 2;
 // Write first block of data
 		if (write_block(data_sd, block_offset, 512)) return 2;
 
@@ -438,6 +439,8 @@ returns 0, the disk is full */
 
 // Current block offset
 				block_offset = cluster_offset + block_num * 512;
+// File data may not reach circular buffer
+				if (block_offset >= circ_offset_begin) return 2;
 // Write block
 				if (write_block(data_sd, block_offset, 512)) return 2;
 
