@@ -405,6 +405,7 @@ returns 0, the disk is full */
 		FEED_WATCHDOG;
 
 // Size of file clip: 5 clusters = 20 seconds at 8 kHz
+// Must be a multiple of 512
 		clip_length = 5 * fatinfo.nbytesinclust;
 
 // Set tracker offset
