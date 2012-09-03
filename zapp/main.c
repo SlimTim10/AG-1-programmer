@@ -38,6 +38,10 @@
 // Infinite loop
 #define HANG()			for (;;);
 
+///TESTING
+#define BSL_START 0x1000
+#define BSL_END   0x1800
+
 uint8_t start_logging(void);
 void LED1_DOT(void);
 void LED1_DASH(void);
@@ -78,6 +82,9 @@ uint8_t wait_for_ctrl(void);
 	uint8_t format_sd_flag;			// Flag to determine when to format SD card
 									// (Set in PORT1_ISR)
 
+///TESTING
+	uint8_t read_BSL_mem[BSL_END-BSL_START];
+
 /*----------------------------------------------------------------------------*/
 /* Main routine																  */
 /*----------------------------------------------------------------------------*/
@@ -106,6 +113,14 @@ start:							// Off state
 	LED1_OFF();
 
 	logging = 0;				// Device is not logging
+
+///TESTING
+	SYSBSLC &= ~(SYSBSLPE | SYSBSLOFF);
+	uint16_t i;
+	for (i = BSL_START; i < BSL_END; i++) {
+		read_BSL_mem[i - BSL_START] = *(uint8_t *) i;
+	}
+	_NOP();	// SET BREAKPOINT HERE
 
 	interrupt_config();			// Configure interrupts
 	enable_interrupts();		// Enable interrupts
