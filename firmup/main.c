@@ -1,7 +1,7 @@
 /**
  * Written by Tim Johns.
  *
- * Firmware for Zapp.
+ * Firmware update using hex file located on SD card.
  *
  * MCU: MSP430F5310
  *
@@ -16,8 +16,8 @@
 #include "circuit.h"
 #include "wave.h"
 
-#define ZAPP_VERSION	1.0a	// Firmware version
-#ifdef ZAPP_VERSION				// Retain constant in executable
+#define FIRMUP_VERSION	1.0a	// Firmware version
+#ifdef FIRMUP_VERSION			// Retain constant in executable
 #endif
 
 #define BUFF_SIZE		512		// Size of data buffers
@@ -26,11 +26,6 @@
 
 #define CTRL_TAP		0		// Button tap (shorter than hold)
 #define CTRL_HOLD		1		// Button hold
-
-// Circular buffer's location as absolute cluster numbers
-// (offset = cluster number * bytes per cluster)
-#define CIRC_BUFF_CLUST_BEGIN	0xDEB8
-#define CIRC_BUFF_CLUST_END		0xEEB8
 
 // Feed the watchdog
 #define FEED_WATCHDOG	wdt_config()
@@ -107,21 +102,16 @@ start:							// Off state
 	LED1_OFF();
 
 /* FLASH UPDATE */
-/*
-MOV #WDTPW+WDTHOLD,&WDTCTL ; Disable WDT
-MOV #FWPW,&FCTL3 ; Clear LOCK
-MOV #FWPW+WRT,&FCTL1 ; Enable write
-MOV #0123h,&0FF1Eh ; 0123h -> 0x0FF1E
-MOV #FWPW,&FCTL1 ; Done. Clear WRT
-MOV #FWPW+LOCK,&FCTL3 ; Set LOCK
-*/
+
+	uint16_t *flashptr;		// Pointer to flash address
+	uint8_t value;			// Byte value to write
+	uint16_t i;				// Counter
+
 	FCTL3 = FWPW;			// Clear LOCK
 	FCTL1 = FWPW + WRT;		// Enable write
 
-	uint16_t *flashptr;				// Pointer to flash address
 	flashptr = (uint16_t *) 0xE000;	// Starting write address
-	uint8_t value = 5;
-	uint16_t i;
+	value = 5;
 
 	for (i = 0; i < 64; i++) {
 		*flashptr++ = value++;		// Write byte to flash
@@ -134,7 +124,6 @@ MOV #FWPW+LOCK,&FCTL3 ; Set LOCK
 
 // Go to main program
 	asm("BR #0x9042");
-
 
 	HANG();
 }

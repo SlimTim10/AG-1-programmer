@@ -2,7 +2,7 @@
 
 <workspace>
   <project>
-    <path>$WS_DIR$\zapp.ewp</path>
+    <path>$WS_DIR$\firmup.ewp</path>
   </project>
   <batchBuild/>
 </workspace>

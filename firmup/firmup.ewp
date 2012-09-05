@@ -592,7 +592,7 @@
         </option>
         <option>
           <name>OutputFile</name>
-          <state>zapp.d43</state>
+          <state>firmup.d43</state>
         </option>
         <option>
           <name>OutputFormat</name>
@@ -658,7 +658,7 @@
         </option>
         <option>
           <name>XclFile</name>
-          <state>$PROJ_DIR$\lnk430f5310_bsl.xcl</state>
+          <state>$PROJ_DIR$\lnk430f5310_firmup.xcl</state>
         </option>
         <option>
           <name>XclFileSlave</name>
@@ -786,7 +786,7 @@
         </option>
         <option>
           <name>ExtraOutputFile</name>
-          <state>zapp.a43</state>
+          <state>firmup.a43</state>
         </option>
         <option>
           <name>ExtraOutputFormat</name>
@@ -1477,7 +1477,7 @@
         </option>
         <option>
           <name>OutputFile</name>
-          <state>zapp.txt</state>
+          <state>firmup.txt</state>
         </option>
         <option>
           <name>OutputFormat</name>
@@ -1671,7 +1671,7 @@
         </option>
         <option>
           <name>ExtraOutputFile</name>
-          <state>zapp.a43</state>
+          <state>firmup.a43</state>
         </option>
         <option>
           <name>ExtraOutputFormat</name>
@@ -1779,7 +1779,7 @@
     <name>$PROJ_DIR$\circuit.h</name>
   </file>
   <file>
-    <name>$PROJ_DIR$\lnk430f5310_bsl.xcl</name>
+    <name>$PROJ_DIR$\lnk430f5310_firmup.xcl</name>
   </file>
   <file>
     <name>$PROJ_DIR$\main.c</name>
