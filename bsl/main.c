@@ -38,10 +38,6 @@
 // Infinite loop
 #define HANG()			for (;;);
 
-///TESTING
-#define BSL_START 0x1000
-#define BSL_END   0x1800
-
 uint8_t start_logging(void);
 void LED1_DOT(void);
 void LED1_DASH(void);
@@ -82,11 +78,6 @@ uint8_t wait_for_ctrl(void);
 	uint8_t format_sd_flag;			// Flag to determine when to format SD card
 									// (Set in PORT1_ISR)
 
-///TESTING
-	uint8_t read_BSL_mem[BSL_END-BSL_START];
-
-	uint32_t value;
-
 /*----------------------------------------------------------------------------*/
 /* Main routine																  */
 /*----------------------------------------------------------------------------*/
@@ -105,7 +96,8 @@ start:							// Off state
 
 /* Turn off power to all slave devices */
 	power_off(SD_PWR);
-///TEST	power_off(ACCEL_PWR);
+///TODO remove
+	power_off(ACCEL_PWR);
 	power_off(GYRO_PWR);
 
 	mcu_spi_off();				// Turn off all MCU SPI outputs
@@ -114,42 +106,34 @@ start:							// Off state
 
 	LED1_OFF();
 
-	logging = 0;				// Device is not logging
+/* FLASH UPDATE */
+/*
+MOV #WDTPW+WDTHOLD,&WDTCTL ; Disable WDT
+MOV #FWPW,&FCTL3 ; Clear LOCK
+MOV #FWPW+WRT,&FCTL1 ; Enable write
+MOV #0123h,&0FF1Eh ; 0123h -> 0x0FF1E
+MOV #FWPW,&FCTL1 ; Done. Clear WRT
+MOV #FWPW+LOCK,&FCTL3 ; Set LOCK
+*/
+	FCTL3 = FWPW;			// Clear LOCK
+	FCTL1 = FWPW + WRT;		// Enable write
 
-///TESTING
-	asm("BR #0x8800");
-
-	SYSBSLC &= ~(SYSBSLPE | SYSBSLOFF);
+	uint16_t *flashptr;				// Pointer to flash address
+	flashptr = (uint16_t *) 0xE000;	// Starting write address
+	uint8_t value = 5;
 	uint16_t i;
-	for (i = BSL_START; i < BSL_END; i++) {
-		read_BSL_mem[i - BSL_START] = *(uint8_t *) i;
+
+	for (i = 0; i < 64; i++) {
+		*flashptr++ = value++;		// Write byte to flash
+		while (BUSY & FCTL3);		// Test BUSY until ready
 	}
-	uint32_t *Flash_ptr;
-	Flash_ptr = (uint32_t *) 0x8000;
-  // Erase Flash
-/*  while(BUSY & FCTL3);                      // Check if Flash being used
-  FCTL3 = FWKEY;                            // Clear Lock bit
-  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
-  *Flash_ptr = 0;                           // Dummy write to erase Flash seg
-  while(BUSY & FCTL3);                      // Check if Erase is done*/
 
-  // Write Flash
-  value = 5;
-  for(i = 0; i < 64; i++)
-  {
-	FCTL3 = FWKEY;                            // Clear Lock bit
-	FCTL1 = FWKEY+BLKWRT+WRT;                 // Enable block write
-    *Flash_ptr++ = value++;                 // Write long int to Flash
-
-    while(!(WAIT & FCTL3));                 // Test wait until ready for next byte
-  }
-
-  FCTL1 = FWKEY;                            // Clear WRT, BLKWRT
-  while(BUSY & FCTL3);                      // Check for write completion
-  *Flash_ptr++ = 5;                 // Write long int to Flash
-  FCTL3 = FWKEY+LOCK;                       // Set LOCK
-  *Flash_ptr++ = 5;                 // Write long int to Flash
+	FCTL1 = FWPW;			// Clear WRT 
+	FCTL3 = FWPW + LOCK;	// Set LOCK
 	_NOP();	// SET BREAKPOINT HERE
+
+// Go to main program
+	asm("BR #0x9042");
 
 
 	HANG();

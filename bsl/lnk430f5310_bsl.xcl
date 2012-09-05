@@ -149,15 +149,15 @@
 // Constant data
 //
 
--Z(CONST)DATA16_C,DATA16_ID,DIFUNCT,CHECKSUM=8000-8800
+-Z(CONST)DATA16_C,DATA16_ID,DIFUNCT,CHECKSUM=8000-9000
 
 
 // -------------------------------------
 // Code
 //
 
--Z(CODE)CSTART,ISR_CODE,CODE_ID=8000-8800
--P(CODE)CODE=8000-8800
+-Z(CODE)CSTART,ISR_CODE,CODE_ID=8000-9000
+-P(CODE)CODE=8000-9000
 
 
 // -------------------------------------
