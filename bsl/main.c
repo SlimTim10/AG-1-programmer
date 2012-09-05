@@ -117,6 +117,8 @@ start:							// Off state
 	logging = 0;				// Device is not logging
 
 ///TESTING
+	asm("BR #0x8800");
+
 	SYSBSLC &= ~(SYSBSLPE | SYSBSLOFF);
 	uint16_t i;
 	for (i = BSL_START; i < BSL_END; i++) {

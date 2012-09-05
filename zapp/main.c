@@ -115,12 +115,56 @@ start:							// Off state
 	logging = 0;				// Device is not logging
 
 ///TESTING
-	SYSBSLC &= ~(SYSBSLPE | SYSBSLOFF);
+
+/*
+MOV #FWPW,&FCTL3 ; Clear LOCK
+MOV #FWPW+WRT,&FCTL1 ; Enable write
+MOV #0123h,&0FF1Eh ; 0123h -> 0x0FF1E
+MOV #FWPW,&FCTL1 ; Done. Clear WRT
+MOV #FWPW+LOCK,&FCTL3 ; Set LOCK
+*/
+
+	uint16_t *Flash_ptr;
+	Flash_ptr = (uint16_t *) 0x9700;
+	uint16_t value = 5;
+	FCTL3 = FWPW;
+	FCTL1 = FWPW + WRT;
 	uint16_t i;
-	for (i = BSL_START; i < BSL_END; i++) {
-		read_BSL_mem[i - BSL_START] = *(uint8_t *) i;
+	for(i = 0; i < 64; i++) {
+		*Flash_ptr++ = value++;		// Write long int to Flash
+		while(!(WAIT & FCTL3));		// Test wait until ready for next byte
 	}
+	FCTL1 = FWPW;
+	FCTL3 = FWPW + LOCK;
 	_NOP();	// SET BREAKPOINT HERE
+
+  // Erase Flash
+/*  while(BUSY & FCTL3);                      // Check if Flash being used
+  FCTL3 = FWKEY;                            // Clear Lock bit
+  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
+  *Flash_ptr = 0;                           // Dummy write to erase Flash seg
+  while(BUSY & FCTL3);                      // Check if Erase is done*/
+
+  // Write Flash
+/*
+  value = 5;
+uint16_t i;
+  for(i = 0; i < 64; i++)
+  {
+	FCTL3 = FWKEY;                            // Clear Lock bit
+	FCTL1 = FWKEY+BLKWRT+WRT;                 // Enable block write
+    *Flash_ptr++ = value++;                 // Write long int to Flash
+
+    while(!(WAIT & FCTL3));                 // Test wait until ready for next byte
+  }
+
+  FCTL1 = FWKEY;                            // Clear WRT, BLKWRT
+  while(BUSY & FCTL3);                      // Check for write completion
+  *Flash_ptr++ = 5;                 // Write long int to Flash
+  FCTL3 = FWKEY+LOCK;                       // Set LOCK
+  *Flash_ptr++ = 5;                 // Write long int to Flash
+	_NOP();	// SET BREAKPOINT HERE
+*/
 
 	interrupt_config();			// Configure interrupts
 	enable_interrupts();		// Enable interrupts

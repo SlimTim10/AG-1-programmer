@@ -1,7 +1,8 @@
 [DebugChecksum]
-Checksum=-1387240509
+Checksum=1869367680
 [DisAssemblyWindow]
-NumStates=_ 0
+NumStates=_ 1
+State 1=_ 1
 [InstructionProfiling]
 Enabled=_ 0
 [CodeCoverage]
@@ -13,7 +14,7 @@ Control Register=0
 NextState0=0
 NextState1=0
 [Action Register]
-Break=3
+Break=7
 State Storage=0
 [StackPlugin]
 Enabled=1
@@ -46,8 +47,9 @@ Enabled=0
 ShowSource=1
 [Breakpoints]
 Bp0=_ "STD_CODE" "Memory:0x8000" 0 0 0 0 "" 0 ""
-Bp1=_ "STD_CODE" "{$PROJ_DIR$\main.c}.140.5@1" 1 0 0 0 "" 0 ""
-Count=2
+Bp1=_ "STD_CODE" "{$PROJ_DIR$\main.c}.142.5@1" 1 0 0 0 "" 0 ""
+Bp2=_ "STD_CODE" "{$PROJ_DIR$\main.c}.120.2@1" 1 0 0 0 "" 0 ""
+Count=3
 [FET]
 Clock mode=14
 Extended Clock mode=-1
@@ -82,6 +84,6 @@ SuppressDialog=0
 Enabled=0
 [DriverProfiling]
 Enabled=0
-Mode=174348624
+Mode=251661148
 Graph=0
 Symbiont=0

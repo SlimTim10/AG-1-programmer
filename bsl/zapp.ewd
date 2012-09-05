@@ -154,7 +154,7 @@
         </option>
         <option>
           <name>Erase</name>
-          <state>1</state>
+          <state>2</state>
         </option>
         <option>
           <name>EMUVerifyDownloadP7</name>
@@ -191,7 +191,7 @@
         </option>
         <option>
           <name>AllowLockedFlashAccessP7</name>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>EMUAttach</name>
@@ -244,7 +244,7 @@
         </option>
         <option>
           <name>AllowAccessToBSL</name>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>OTargetVccTypeDefault</name>

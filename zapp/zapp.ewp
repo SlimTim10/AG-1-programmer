@@ -654,11 +654,11 @@
         </option>
         <option>
           <name>XclOverride</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>XclFile</name>
-          <state>$TOOLKIT_DIR$\CONFIG\lnk430F5310.xcl</state>
+          <state>$PROJ_DIR$\lnk430f5310_zapp.xcl</state>
         </option>
         <option>
           <name>XclFileSlave</name>
@@ -1777,6 +1777,9 @@
   </file>
   <file>
     <name>$PROJ_DIR$\circuit.h</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$\lnk430f5310_zapp.xcl</name>
   </file>
   <file>
     <name>$PROJ_DIR$\main.c</name>
